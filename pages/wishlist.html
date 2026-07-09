@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Wishlist | Roger McDaniels</title>
+  <link rel="icon" type="image/png" href="../assets/rm-logo.jpg">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../css/main.css">
+  <style>
+    .wishlist-hero {
+      background: linear-gradient(135deg, #d4d4d4 0%, #e8e8e8 50%, #c8c8c8 100%);
+      padding-top: 140px;
+      padding-bottom: 60px;
+    }
+    .wishlist-hero-inner {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 0 40px;
+      text-align: center;
+    }
+    .wishlist-hero h1 {
+      font-size: 40px;
+      font-weight: 800;
+      letter-spacing: -1px;
+      margin-bottom: 10px;
+    }
+    .wishlist-hero p {
+      font-size: 16px;
+      color: var(--text-muted);
+    }
+    .wishlist-section {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 50px 10px 100px;
+    }
+  </style>
+</head>
+<body>
+
+<div id="header-placeholder"></div>
+
+<section class="wishlist-hero">
+  <div class="wishlist-hero-inner">
+    <h1>My Wishlist</h1>
+    <p>Pieces you've saved for later</p>
+  </div>
+</section>
+
+<section class="wishlist-section">
+  <div class="products-grid grid-4 carousel-mobile" id="wishlist-grid">
+    <!-- Rendered via JS -->
+  </div>
+</section>
+
+<div id="footer-placeholder"></div>
+
+<script src="../js/main.js"></script>
+<script src="../components/header.js"></script>
+<script src="../components/footer.js"></script>
+<script src="../components/cart.js"></script>
+<script src="../components/checkout.js"></script>
+<script src="../components/comment.js"></script>
+<script src="../components/scroll-hint.js"></script>
+<script>
+  loadData().then(data => {
+    if (!data) return;
+    const grid = document.getElementById('wishlist-grid');
+    const items = data.products.filter(p => state.wishlist.includes(p.id));
+
+    if (items.length === 0) {
+      grid.innerHTML = `
+        <div class="empty-state" style="grid-column: 1 / -1;">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+          <h3>Your wishlist is empty</h3>
+          <p>Tap the heart icon on any product to save it here.</p>
+          <a href="shop.html" class="btn btn-primary" style="margin-top: 20px;">Start Shopping</a>
+        </div>
+      `;
+      return;
+    }
+
+    grid.innerHTML = items.map(p => renderProductCard(p)).join('');
+    initWishlistButtons();
+    initColorDots();
+    initScrollAnimations();
+
+    // On this page specifically, removing from wishlist should drop the card immediately
+    grid.querySelectorAll('.wishlist-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        setTimeout(() => {
+          if (!state.wishlist.includes(btn.dataset.productId)) {
+            const card = btn.closest('.product-card');
+            if (card) card.remove();
+            if (grid.children.length === 0) location.reload();
+          }
+        }, 0);
+      });
+    });
+  });
+</script>
+</body>
+</html>

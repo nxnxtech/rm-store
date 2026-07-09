@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Contact | Roger McDaniels</title>
+  <link rel="icon" type="image/png" href="../assets/rm-logo.jpg">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../css/main.css">
+  <style>
+    .contact-hero {
+      background: linear-gradient(135deg, #d4d4d4 0%, #e8e8e8 50%, #c8c8c8 100%);
+      padding-top: 140px;
+      padding-bottom: 60px;
+    }
+    .contact-hero-inner {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 0 40px;
+      text-align: center;
+    }
+    .contact-hero h1 {
+      font-size: 48px;
+      font-weight: 800;
+      letter-spacing: -1.5px;
+      margin-bottom: 12px;
+    }
+    .contact-hero p {
+      font-size: 18px;
+      color: var(--text-muted);
+      max-width: 500px;
+      margin: 0 auto;
+    }
+    .contact-section {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 60px 40px 80px;
+    }
+    @media(max-width: 1024px) {
+      .contact-section{
+        padding: 60px 20px 80px;
+      }
+    }
+    .contact-grid {
+      display: grid;
+      grid-template-columns: 1fr 1.2fr;
+      gap: 48px;
+    }
+    .contact-info-panel {
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+    .contact-info-card {
+      background: var(--glass-bg);
+      backdrop-filter: var(--blur);
+      border: 1px solid var(--glass-border);
+      border-radius: var(--radius-xl);
+      padding: 28px;
+      box-shadow: var(--glass-shadow);
+      display: flex;
+      align-items: flex-start;
+      gap: 16px;
+      transition: transform var(--transition-normal);
+    }
+    .contact-info-card:hover {
+      transform: translateY(-2px);
+    }
+    .contact-info-icon {
+      width: 44px;
+      height: 44px;
+      border-radius: var(--radius-md);
+      background: rgba(0,0,0,0.05);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+    .contact-info-icon svg {
+      width: 20px;
+      height: 20px;
+    }
+    .contact-info-text h4 {
+      font-size: 15px;
+      font-weight: 700;
+      margin-bottom: 4px;
+    }
+    .contact-info-text p {
+      font-size: 14px;
+      color: var(--text-muted);
+    }
+    .contact-hours {
+      background: var(--glass-bg);
+      backdrop-filter: var(--blur);
+      border: 1px solid var(--glass-border);
+      border-radius: var(--radius-xl);
+      padding: 28px;
+      box-shadow: var(--glass-shadow);
+      margin-top: auto;
+    }
+    .contact-hours h4 {
+      font-size: 15px;
+      font-weight: 700;
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .contact-hours h4 svg {
+      width: 18px;
+      height: 18px;
+    }
+    .contact-hours p {
+      font-size: 14px;
+      color: var(--text-muted);
+    }
+    .contact-form-panel {
+      background: var(--glass-bg);
+      backdrop-filter: var(--blur);
+      border: 1px solid var(--glass-border);
+      border-radius: var(--radius-xl);
+      padding: 20px;
+      box-shadow: var(--glass-shadow);
+    }
+    .contact-form-panel h2 {
+      font-size: 24px;
+      font-weight: 700;
+      margin-bottom: 8px;
+    }
+    .contact-form-panel > p {
+      font-size: 14px;
+      color: var(--text-muted);
+      margin-bottom: 28px;
+    }
+    .form-group {
+      margin-bottom: 20px;
+    }
+    .form-group label {
+      display: block;
+      font-size: 13px;
+      font-weight: 600;
+      margin-bottom: 6px;
+      color: var(--text-dark);
+    }
+    .form-group input,
+    .form-group textarea,
+    .form-group select {
+      width: 100%;
+      padding: 12px 16px;
+      border: 1px solid rgba(0,0,0,0.1);
+      border-radius: var(--radius-md);
+      background: rgba(255,255,255,0.6);
+      backdrop-filter: blur(10px);
+      font-size: 14px;
+      font-family: inherit;
+      outline: none;
+      transition: all var(--transition-fast);
+    }
+    .form-group input:focus,
+    .form-group textarea:focus,
+    .form-group select:focus {
+      border-color: rgba(0,0,0,0.2);
+      background: rgba(255,255,255,0.8);
+      box-shadow: 0 0 0 3px rgba(0,0,0,0.05);
+    }
+    .form-group textarea {
+      min-height: 120px;
+      resize: vertical;
+    }
+    .form-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+    .contact-form-panel .btn-primary {
+      width: 100%;
+      margin-top: 8px;
+    }
+    @media (max-width: 1024px) {
+      .contact-grid { grid-template-columns: 1fr; }
+      .contact-info-panel { order: 1; }
+      .contact-form-panel { order: 0; }
+    }
+    @media (max-width: 640px) {
+      .form-row { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<div id="header-placeholder"></div>
+
+<section class="contact-hero">
+  <div class="contact-hero-inner">
+    <h1>Holla Me</h1>
+    <p>Even just to say 'Hello', I'll appreciate it.</p>
+  </div>
+</section>
+
+<section class="contact-section">
+  <div class="contact-grid">
+    <div class="contact-info-panel">
+      <div class="contact-info-card fade-in">
+        <div class="contact-info-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+        </div>
+        <div class="contact-info-text">
+          <h4>Email</h4>
+          <p>nxnxtech@gmail.com</p>
+        </div>
+      </div>
+      <div class="contact-info-card fade-in stagger-1">
+        <div class="contact-info-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+        </div>
+        <div class="contact-info-text">
+          <h4>Phone</h4>
+          <p>+233 599 505 817</p>
+        </div>
+      </div>
+      <!--<div class="contact-info-card fade-in stagger-2">
+        <div class="contact-info-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+        </div>
+        <div class="contact-info-text">
+          <h4>Address</h4>
+          <p>123 Fashion Ave, New York, NY 10001</p>
+        </div>
+      </div>-->
+      <div class="contact-hours fade-in stagger-3">
+        <h4>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+          Business Hours
+        </h4>
+        <p>24/7 - All day : All night</p>
+      </div>
+    </div>
+
+    <div class="contact-form-panel fade-in">
+      <h2>Send a Message</h2>
+      <p>Fill out the form below and we'll get back to you within 24 hours.</p>
+      <form id="contact-form" onsubmit="handleContactSubmit(event)">
+        <div class="form-row">
+          <div class="form-group">
+            <label for="firstName">First Name</label>
+            <input type="text" id="firstName" name="firstName" required placeholder="Roger">
+          </div>
+          <div class="form-group">
+            <label for="lastName">Last Name</label>
+            <input type="text" id="lastName" name="lastName" required placeholder="McDaniels">
+          </div>
+        </div>
+        <!--<div class="form-group">
+          <label for="email">Email</label>
+          <input type="email" id="email" name="email" required placeholder="john@example.com">
+        </div>-->
+        <div class="form-group">
+          <label for="subject">Subject</label>
+          <select id="subject" name="subject" required>
+            <option value="">Select a topic</option>
+            <option value="general">General Inquiry</option>
+            <option value="order">Order Support</option>
+            <option value="returns">Returns & Exchanges</option>
+            <option value="partnership">Partnership</option>
+            <option value="feedback">Feedback</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="message">Message</label>
+          <textarea id="message" name="message" required placeholder="Tell me everything..."></textarea>
+        </div>
+        <button type="submit" class="btn btn-primary">
+          Send Message
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+        </button>
+      </form>
+    </div>
+  </div>
+</section>
+
+<section class="comments-section" id="comments-section"></section>
+
+<div id="footer-placeholder"></div>
+
+<script src="../js/main.js"></script>
+<script src="../components/header.js"></script>
+<script src="../components/footer.js"></script>
+<script src="../components/cart.js"></script>
+<script src="../components/checkout.js"></script>
+<script src="../components/comment.js"></script>
+<script src="../components/scroll-hint.js"></script>
+<script>
+  function handleContactSubmit(e) {
+    e.preventDefault();
+    const btn = e.target.querySelector('button[type="submit"]');
+    const originalText = btn.innerHTML;
+    btn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="animation: spin 1s linear infinite"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg> Opening WhatsApp...';
+    btn.disabled = true;
+
+    // 1. Gather form values
+    const firstName = document.getElementById('firstName').value;
+    const lastName = document.getElementById('lastName').value;
+    const email = document.getElementById('email').value;
+    const subjectDropdown = document.getElementById('subject');
+    const subjectText = subjectDropdown.options[subjectDropdown.selectedIndex].text;
+    const message = document.getElementById('message').value;
+
+    // 2. Format the message text nicely (using markdown formatting like *bold*)
+    const formattedMessage = `New Contact Form Submission:\n\n` +
+                             `*Name:* ${firstName} ${lastName}\n` +
+                             `*Email:* ${email}\n` +
+                             `*Subject:* ${subjectText}\n\n` +
+                             `*Message:* ${message}`;
+
+    // 3. Define WhatsApp configurations 
+    // Replace '15551234567' with your actual WhatsApp phone number including country code (no + or spaces)
+    const phoneNumber = '15551234567'; 
+    const encodedText = encodeURIComponent(formattedMessage);
+    const whatsappUrl = `https://wa.me/${phoneNumber}?text=${encodedText}`;
+
+    setTimeout(() => {
+      // Open WhatsApp in a new tab
+      window.open(whatsappUrl, '_blank');
+
+      btn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg> Redirected!';
+      btn.style.background = 'var(--success)';
+      
+      if (typeof showToast === 'function') {
+        showToast('Redirecting to WhatsApp...', 'success');
+      }
+      
+      e.target.reset();
+
+      setTimeout(() => {
+        btn.innerHTML = originalText;
+        btn.style.background = '';
+        btn.disabled = false;
+      }, 2000);
+    }, 1200);
+  }
+
+  // Add spin animation
+  const style = document.createElement('style');
+  style.textContent = '@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }';
+  document.head.appendChild(style);
+</script>
+</body>
+</html>

@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Order History | Roger McDaniels</title>
+  <link rel="icon" type="image/png" href="../assets/rm-logo.jpg">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../css/main.css">
+  <style>
+    .orders-hero {
+      background: linear-gradient(135deg, #d4d4d4 0%, #e8e8e8 50%, #c8c8c8 100%);
+      padding-top: 140px;
+      padding-bottom: 60px;
+    }
+    .orders-hero-inner {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 0 40px;
+      text-align: center;
+    }
+    .orders-hero h1 {
+      font-size: 40px;
+      font-weight: 800;
+      letter-spacing: -1px;
+      margin-bottom: 10px;
+    }
+    .orders-hero p {
+      font-size: 16px;
+      color: var(--text-muted);
+    }
+    .orders-section {
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 20px 20px 100px;
+    }
+    .order-card {
+      background: var(--glass-bg);
+      backdrop-filter: var(--blur);
+      border: 1px solid var(--glass-border);
+      border-radius: var(--radius-xl);
+      box-shadow: var(--glass-shadow);
+      margin-bottom: 24px;
+      overflow: hidden;
+    }
+    .order-card-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 18px 26px;
+      border-bottom: 1px solid rgba(0,0,0,0.06);
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+    .order-card-header h4 {
+      font-size: 15px;
+      font-weight: 700;
+    }
+    .order-card-header span {
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+    .order-status {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 14px;
+      border-radius: var(--radius-full);
+      font-size: 12px;
+      font-weight: 600;
+      background: rgba(34,197,94,0.1);
+      color: var(--success);
+    }
+    .order-card-items {
+      padding: 20px 26px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+    .order-item-row {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+    .order-item-row img {
+      width: 56px;
+      height: 68px;
+      object-fit: cover;
+      border-radius: var(--radius-md);
+      flex-shrink: 0;
+    }
+    .order-item-row h5 {
+      font-size: 14px;
+      font-weight: 600;
+    }
+    .order-item-row span {
+      font-size: 13px;
+      color: var(--text-muted);
+    }
+    .order-card-footer {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 18px 26px;
+      border-top: 1px solid rgba(0,0,0,0.06);
+      background: rgba(0,0,0,0.02);
+    }
+    .order-card-footer strong {
+      font-size: 16px;
+    }
+    @media (max-width: 640px) {
+      .order-card-header {
+        display: flex;
+        flex-direction: row;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: 12px;
+      }
+
+      .order-card-header > div {
+        flex: 1;
+        min-width: 0;
+      }
+
+      .order-status {
+        flex-shrink: 0;
+        align-self: flex-start;
+      }
+    }
+  </style>
+</head>
+<body>
+
+<div id="header-placeholder"></div>
+
+<section class="orders-hero">
+  <div class="orders-hero-inner">
+    <h1>Order History</h1>
+    <p>Track and review your past purchases</p>
+  </div>
+</section>
+
+<section class="orders-section" id="orders-content">
+  </section>
+
+<div id="footer-placeholder"></div>
+
+<script src="../js/main.js"></script>
+<script src="../components/header.js"></script>
+<script src="../components/footer.js"></script>
+<script src="../components/cart.js"></script>
+<script src="../components/checkout.js"></script>
+<script src="../components/comment.js"></script>
+<script src="../components/scroll-hint.js"></script>
+<script>
+  const ordersContent = document.getElementById('orders-content');
+
+  if (state.orders.length === 0) {
+    ordersContent.innerHTML = `
+      <div class="empty-state">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="M3.3 7 12 12l8.7-5"/><path d="M12 22V12"/></svg>
+        <h3>No orders yet</h3>
+        <p>Once you place an order, it'll show up here.</p>
+        <a href="shop.html" class="btn btn-primary" style="margin-top: 20px;">Start Shopping</a>
+      </div>
+    `;
+  } else {
+    ordersContent.innerHTML = state.orders.map((order, i) => `
+      <div class="order-card fade-in stagger-${(i % 4) + 1}">
+        <div class="order-card-header">
+          <div>
+            <h4>Order #${order.id}</h4>
+            <span>${new Date(order.date).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}</span>
+          </div>
+          <span class="order-status">${getIcon('check')} ${order.status}</span>
+        </div>
+        <div class="order-card-items">
+          ${order.items.map(item => `
+            <div class="order-item-row">
+              <img src="${assetPath(item.image)}" alt="${item.name}">
+              <div>
+                <h5>${item.name}</h5>
+                <span>${item.size ? `Size ${item.size} &middot; ` : ''}Qty ${item.qty} &middot; ${formatPrice(item.price)}</span>
+              </div>
+            </div>
+          `).join('')}
+        </div>
+        <div class="order-card-footer">
+          <span>Shipped to ${order.customer.city}</span>
+          <strong>${formatPrice(order.total)}</strong>
+        </div>
+      </div>
+    `).join('');
+    initScrollAnimations();
+  }
+</script>
+</body>
+</html>

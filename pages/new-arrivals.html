@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>New Arrivals | Roger McDaniels</title>
+  <link rel="icon" type="image/png" href="../assets/rm-logo.jpg">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../css/main.css">
+  <style>
+    .new-arrivals-hero {
+      background: linear-gradient(135deg, #d4d4d4 0%, #e8e8e8 50%, #c8c8c8 100%);
+      padding-top: 140px;
+      padding-bottom: 60px;
+    }
+    .new-arrivals-hero-inner {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 0 40px;
+      text-align: center;
+    }
+    .new-arrivals-hero h1 {
+      font-size: 48px;
+      font-weight: 800;
+      letter-spacing: -1.5px;
+      margin-bottom: 12px;
+    }
+    .new-arrivals-hero p {
+      font-size: 18px;
+      color: var(--text-muted);
+    }
+    .new-arrivals-section {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 40px 20px 80px;
+    }
+  </style>
+</head>
+<body>
+
+<div id="header-placeholder"></div>
+
+<section class="new-arrivals-hero">
+  <div class="new-arrivals-hero-inner">
+    <h1>New Arrivals</h1>
+    <p>The latest drops, curated for you</p>
+  </div>
+</section>
+
+<section class="new-arrivals-section">
+  <div class="products-grid grid-4 carousel-mobile" id="new-arrivals-grid">
+    <!-- Products rendered via JS -->
+  </div>
+</section>
+
+<section class="comments-section" id="comments-section"></section>
+
+<div id="footer-placeholder"></div>
+
+<script src="../js/main.js"></script>
+<script src="../components/header.js"></script>
+<script src="../components/footer.js"></script>
+<script src="../components/cart.js"></script>
+<script src="../components/checkout.js"></script>
+<script src="../components/comment.js"></script>
+<script src="../components/scroll-hint.js"></script>
+<script>
+  loadData().then(data => {
+    if (!data) return;
+    const newProducts = data.products.filter(p => p.is_new);
+    const grid = document.getElementById('new-arrivals-grid');
+    grid.innerHTML = newProducts.map(p => renderProductCard(p)).join('');
+    initWishlistButtons();
+    initColorDots();
+    initScrollAnimations();
+  });
+</script>
+</body>
+</html>

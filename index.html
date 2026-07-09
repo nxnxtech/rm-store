@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Roger McDaniels | Elevated Style. Everyday Comfort.</title>
+  <link rel="icon" type="image/png" href="assets/rm-logo.jpg">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/main.css">
+</head>
+<body>
+
+<!-- Navigation -->
+<div id="header-placeholder"></div>
+
+<!-- Hero Section -->
+<section class="hero">
+  <div class="hero-content">
+    <div class="hero-text">
+      <div class="badge">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+        RM Statements
+      </div>
+      <h1 class="hero-title">Not for<br>Everyone.</h1>
+      <h1 class="hero-title">Elevated Style.</h1>
+      <p class="hero-subtitle">Timeless pieces. Modern fit. Made for you.</p>
+      <div class="hero-buttons">
+        <a href="pages/shop.html" class="btn btn-primary">
+          Shop Now
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="7" y1="17" x2="17" y2="7"/><polyline points="7 7 17 7 17 17"/></svg>
+        </a>
+        <a href="pages/collections.html" class="btn btn-glass">Explore Collection</a>
+      </div>
+      <!--<div class="social-proof">
+        <div class="avatar-stack">
+          <img src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100&h=100&fit=crop&crop=face" alt="Customer" loading="lazy">
+          <img src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&h=100&fit=crop&crop=face" alt="Customer" loading="lazy">
+          <img src="https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=100&h=100&fit=crop&crop=face" alt="Customer" loading="lazy">
+          <img src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&h=100&fit=crop&crop=face" alt="Customer" loading="lazy">
+        </div>
+        <span class="social-proof-text">Join <strong>10,000+</strong> happy customers</span>
+      </div>-->
+    </div>
+    <div class="hero-image-area">
+      <img src="assets/pose/rm-pose-1.png" alt="Fashion Model" class="hero-model" loading="eager">
+      <div class="product-card-glass">
+        <img src="assets/product/rm-product-1.png" alt="Linen Overshirt" loading="lazy">
+        <div class="product-card-info">
+          <h4>Linen Overshirt</h4>
+          <div class="price">GH₵1,062.00</div>
+        </div>
+        <button class="add-btn" onclick="event.stopPropagation(); addToCart('p5', 1, 'M')">+</button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Features Bar -->
+<div class="features-bar">
+  <div class="features-inner">
+    <div class="feature-item">
+      <div class="feature-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h12l4 6-10 13L2 9z"/></svg>
+      </div>
+      <div class="feature-text">
+        <h4>Premium Quality</h4>
+        <p>Finest fabrics &amp; materials</p>
+      </div>
+    </div>
+    <div class="feature-item">
+      <div class="feature-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="3" width="15" height="13"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
+      </div>
+      <div class="feature-text">
+        <h4>Free Shipping</h4>
+        <p>On orders over GH₵900</p>
+      </div>
+    </div>
+    <div class="feature-item">
+      <div class="feature-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+      </div>
+      <div class="feature-text">
+        <h4>Easy Returns</h4>
+        <p>7-day return policy</p>
+      </div>
+    </div>
+    <div class="feature-item">
+      <div class="feature-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><polyline points="9 12 12 15 16 10"/></svg>
+      </div>
+      <div class="feature-text">
+        <h4>Secure Checkout</h4>
+        <p>100% secure payments</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Categories Section -->
+<section class="section">
+  <div class="section-header fade-in">
+    <h2 class="section-title">Shop by Category</h2>
+    <a href="pages/shop.html" class="view-all">View all <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></a>
+  </div>
+  <div class="categories-grid grid-4">
+    <div class="category-card fade-in stagger-1">
+      <img src="https://images.unsplash.com/photo-1556821840-3a63f95609a7?w=400&h=500&fit=crop" alt="Men" loading="lazy">
+      <div class="category-overlay">
+        <h3>Men</h3>
+        <a href="pages/shop.html?category=men" class="category-link">Explore <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="7" y1="17" x2="17" y2="7"/><polyline points="7 7 17 7 17 17"/></svg></a>
+      </div>
+    </div>
+    <div class="category-card fade-in stagger-2">
+      <img src="assets/product/rm-sign-1.jpg" alt="Women" loading="lazy">
+      <div class="category-overlay">
+        <h3>Women</h3>
+        <a href="pages/shop.html?category=women" class="category-link">Explore <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="7" y1="17" x2="17" y2="7"/><polyline points="7 7 17 7 17 17"/></svg></a>
+      </div>
+    </div>
+    <div class="category-card fade-in stagger-3">
+      <img src="https://images.unsplash.com/photo-1516762689617-e1cffcef479d?w=400&h=500&fit=crop" alt="Essentials" loading="lazy">
+      <div class="category-overlay">
+        <h3>Essentials</h3>
+        <a href="pages/shop.html?category=essentials" class="category-link">Explore <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="7" y1="17" x2="17" y2="7"/><polyline points="7 7 17 7 17 17"/></svg></a>
+      </div>
+    </div>
+    <div class="category-card fade-in stagger-4">
+      <img src="assets/product/rm-tote.png" alt="Accessories" loading="lazy">
+      <div class="category-overlay">
+        <h3>Accessories</h3>
+        <a href="pages/shop.html?category=accessories" class="category-link">Explore <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="7" y1="17" x2="17" y2="7"/><polyline points="7 7 17 7 17 17"/></svg></a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- New Arrivals -->
+<section class="section" style="padding-top: 0;">
+  <div class="section-header fade-in">
+    <h2 class="section-title">New Arrivals</h2>
+    <a href="pages/new-arrivals.html" class="view-all">View all <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></a>
+  </div>
+  <div class="products-grid grid-4 carousel-mobile" id="new-arrivals-grid">
+    <!-- Products rendered via JS -->
+  </div>
+</section>
+
+<!-- Shop -->
+<section class="section" style="padding-top: 0;">
+  <div class="section-header fade-in">
+    <h2 class="section-title">Shop RM</h2>
+    <a href="pages/shop.html" class="view-all">View all <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></a>
+  </div>
+  <div class="products-grid grid-4 carousel-mobile" id="shop-preview-grid">
+    <!-- Products rendered via JS -->
+  </div>
+</section>
+
+<!-- Collections -->
+<section class="section" style="padding-top: 0;">
+  <div class="section-header fade-in">
+    <h2 class="section-title">Collections</h2>
+    <a href="pages/collections.html" class="view-all">View all <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></a>
+  </div>
+  <div class="collections-grid-home carousel-mobile" id="collections-preview-grid">
+    <!-- Collections rendered via JS -->
+  </div>
+</section>
+
+<!-- Instagram Gallery -->
+<section class="section" style="padding-top: 0;">
+  <div class="section-header fade-in">
+    <h2 class="section-title">@rmthefashionkeen</h2>
+    <a href="#" id="instagram-profile-link" target="_blank" rel="noopener" class="btn btn-glass btn-sm">
+      Instagram
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="7" y1="17" x2="17" y2="7"/><polyline points="7 7 17 7 17 17"/></svg>
+    </a>
+  </div>
+  <div class="instagram-grid" id="instagram-grid">
+    <!-- Gallery rendered via JS -->
+  </div>
+</section>
+
+<!-- FAQ -->
+<section class="section" style="padding-top: 0;">
+  <div class="section-header fade-in">
+    <h2 class="section-title">Frequently Asked Questions</h2>
+  </div>
+  <div class="faq-list" id="faq-list">
+    <!-- FAQ rendered via JS -->
+  </div>
+</section>
+
+<!-- Comments (Chat — components/comment.js) -->
+<section class="comments-section" id="comments-section"></section>
+
+<!-- Newsletter -->
+<section class="newsletter-section">
+  <div class="newsletter-glass fade-in">
+    <div class="newsletter-left">
+      <div class="newsletter-icon">
+        <svg viewBox="0 0 24 24" fill="black"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12.001 2C6.478 2 2 6.478 2 12c0 1.85.505 3.66 1.46 5.24L2 22l4.9-1.416A9.958 9.958 0 0012.001 22C17.523 22 22 17.523 22 12S17.523 2 12.001 2zm0 18.13a8.108 8.108 0 01-4.13-1.13l-.296-.176-3.045.88.86-2.968-.192-.305A8.107 8.107 0 013.87 12c0-4.484 3.648-8.13 8.131-8.13 4.483 0 8.13 3.646 8.13 8.13 0 4.484-3.647 8.13-8.13 8.13z"/></svg>
+      </div>
+      <div class="newsletter-text">
+        <h3>Stay in the loop</h3>
+        <p>Get exclusive offers, early access, and style inspiration.</p>
+      </div>
+    </div>
+    <form class="newsletter-form">
+      <button type=""><a href="https://wa.me/233599505817">Join my Whatsapp</a></button>
+    </form>
+  </div>
+</section>
+
+<!-- Footer -->
+<div id="footer-placeholder"></div>
+
+<script src="js/main.js"></script>
+<script src="components/header.js"></script>
+<script src="components/footer.js"></script>
+<script src="components/cart.js"></script>
+<script src="components/checkout.js"></script>
+<script src="components/comment.js"></script>
+<script src="components/scroll-hint.js"></script>
+<script>
+  // Load and render new arrivals
+  loadData().then(data => {
+    if (!data) return;
+
+    // New arrivals
+    const newProducts = data.products.filter(p => p.is_new).slice(0, 4);
+    const grid = document.getElementById('new-arrivals-grid');
+    grid.innerHTML = newProducts.map(p => renderProductCard(p)).join('');
+
+    // Shop preview (mix of products across categories)
+    const shopGrid = document.getElementById('shop-preview-grid');
+    if (shopGrid) {
+      const shopPicks = [...data.products].sort((a, b) => b.rating - a.rating).slice(0, 8);
+      shopGrid.innerHTML = shopPicks.map(p => renderProductCard(p)).join('');
+    }
+
+    // Collections preview
+    const collectionsGrid = document.getElementById('collections-preview-grid');
+    if (collectionsGrid && data.collections) {
+      collectionsGrid.innerHTML = data.collections.map((c, i) => `
+        <div class="collection-card fade-in stagger-${i + 1}">
+          <img src="${c.image}" alt="${c.name}" loading="lazy">
+          <div class="collection-content">
+            <p style="font-size: 12px; text-transform: uppercase; letter-spacing: 2px; color: rgba(255,255,255,0.7); margin-bottom: 4px;">${c.subtitle}</p>
+            <h3>${c.name}</h3>
+            <p>${c.description}</p>
+            <a href="pages/shop.html?collection=${c.id}" class="btn btn-glass btn-sm" style="margin-top: 8px;">
+              Shop ${c.product_count} Items
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+            </a>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    // Testimonials
+    // Instagram gallery — renders real posts via Instagram's official embed
+    // widget (see renderInstagramEmbeds in main.js for why this is the only
+    // legitimate way to pull live content from an Instagram profile).
+    const instagramUrl = data.instagram_url || 'https://www.instagram.com/rmthefashionkeen';
+    const profileLink = document.getElementById('instagram-profile-link');
+    if (profileLink) profileLink.href = instagramUrl;
+
+    renderInstagramEmbeds('instagram-grid', data.instagram_posts);
+
+    // FAQ
+    const faqList = document.getElementById('faq-list');
+    if (faqList && data.faq) {
+      faqList.innerHTML = data.faq.map((f, i) => `
+        <div class="faq-item fade-in stagger-${i + 1}">
+          <button class="faq-question" onclick="toggleFaq(this)">
+            ${f.question}
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+          </button>
+          <div class="faq-answer"><p>${f.answer}</p></div>
+        </div>
+      `).join('');
+    }
+
+    initWishlistButtons();
+    initColorDots();
+    initScrollAnimations();
+  });
+</script>
+</body>
+</html>

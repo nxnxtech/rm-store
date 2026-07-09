@@ -1,0 +1,20 @@
+{
+  "users": [
+    {
+      "id": "u1",
+      "name": "Roger McDaniels",
+      "email": "rm@nxnx.tech",
+      "password": "password123",
+      "avatar": "assets/pose/rm-pose-1.png",
+      "joined": "2026-07-09"
+    },
+    {
+      "id": "u2",
+      "name": "NxNx Tech",
+      "email": "aardmann@nxnx.tech",
+      "password": "password123",
+      "avatar": "assets/product/nxnx/nxnx-shirt-bf.png",
+      "joined": "2026-07-09"
+    }
+  ]
+}

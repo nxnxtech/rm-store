@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Shop | Roger McDaniels</title>
+  <link rel="icon" type="image/png" href="../assets/rm-logo.jpg">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../css/main.css">
+  <style>
+    .shop-hero {
+      background: linear-gradient(135deg, #d4d4d4 0%, #e8e8e8 50%, #c8c8c8 100%);
+      padding-top: 140px;
+      padding-bottom: 60px;
+    }
+    .shop-hero-inner {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 0 40px;
+      text-align: center;
+    }
+    .shop-hero h1 {
+      font-size: 48px;
+      font-weight: 800;
+      letter-spacing: -1.5px;
+      margin-bottom: 12px;
+    }
+    .shop-hero p {
+      font-size: 18px;
+      color: var(--text-muted);
+    }
+    .shop-section {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 40px 20px 80px;
+    }
+    .active-filters {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 24px;
+      flex-wrap: wrap;
+    }
+    .filter-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 14px;
+      background: var(--glass-bg);
+      backdrop-filter: var(--blur);
+      border: 1px solid var(--glass-border);
+      border-radius: var(--radius-full);
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all var(--transition-fast);
+    }
+    .filter-chip:hover {
+      background: rgba(255,255,255,0.8);
+    }
+    .filter-chip svg {
+      width: 14px;
+      height: 14px;
+    }
+    .empty-state {
+      text-align: center;
+      padding: 80px 20px;
+    }
+    .empty-state svg {
+      width: 64px;
+      height: 64px;
+      color: var(--text-muted-light);
+      margin-bottom: 20px;
+    }
+    .empty-state h3 {
+      font-size: 20px;
+      font-weight: 600;
+      margin-bottom: 8px;
+    }
+    .empty-state p {
+      color: var(--text-muted);
+      font-size: 14px;
+    }
+
+    /* Styles for the independently scrollable rows */
+    .shop-row-container {
+      margin-bottom: 40px;
+    }
+    .shop-row-heading {
+      font-size: 14px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: var(--text-muted);
+      margin-bottom: 16px;
+    }
+    .scrollable-shop-row {
+      display: flex;
+      gap: 24px;
+      overflow-x: auto;
+      padding-bottom: 16px;
+      scroll-behavior: smooth;
+      -webkit-overflow-scrolling: touch;
+    }
+    /* Hide scrollbars but preserve functionality */
+    .scrollable-shop-row::-webkit-scrollbar {
+      display: none;
+    }
+    .scrollable-shop-row {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
+    .scrollable-shop-row .product-card {
+      min-width: 280px;
+      max-width: 280px;
+      flex-shrink: 0;
+    }
+  </style>
+</head>
+<body>
+
+<div id="header-placeholder"></div>
+
+<section class="shop-hero">
+  <div class="shop-hero-inner">
+    <h1>Shop All</h1>
+    <p>Discover our full collection of timeless pieces</p>
+  </div>
+</section>
+
+<section class="shop-section">
+  <div class="filters-bar">
+    <div class="filter-group">
+      <div class="shop-search-input">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <input type="text" id="shop-search-input" placeholder="Search products..." oninput="applyFilters()">
+      </div>
+      <div class="filter-item">
+        <span class="filter-label">Category:</span>
+        <select class="filter-select" id="category-filter" onchange="applyFilters()">
+          <option value="all">All Categories</option>
+          <option value="men">Men</option>
+          <option value="women">Women</option>
+          <option value="essentials">Essentials</option>
+          <option value="accessories">Accessories</option>
+        </select>
+      </div>
+      <div class="filter-item">
+        <span class="filter-label">Sort:</span>
+        <select class="filter-select" id="sort-filter" onchange="applyFilters()">
+          <option value="newest">Newest</option>
+          <option value="price-low">Price: Low to High</option>
+          <option value="price-high">Price: High to Low</option>
+          <option value="rating">Top Rated</option>
+        </select>
+      </div>
+    </div>
+    <span class="results-count" id="results-count">Loading...</span>
+  </div>
+
+  <div class="active-filters" id="active-filters"></div>
+
+  <div id="shop-grid-container">
+    </div>
+</section>
+
+<section class="comments-section" id="comments-section"></section>
+
+<div id="footer-placeholder"></div>
+
+<script src="../js/main.js"></script>
+<script src="../components/header.js"></script>
+<script src="../components/footer.js"></script>
+<script src="../components/cart.js"></script>
+<script src="../components/checkout.js"></script>
+<script src="../components/comment.js"></script>
+<script src="../components/scroll-hint.js"></script>
+<script>
+  let allProducts = [];
+  let currentCategory = 'all';
+  let currentCollection = null;
+  let currentCollectionName = '';
+
+  loadData().then(data => {
+    if (!data) return;
+    allProducts = data.products;
+
+    // Check URL params for category, search, and collection
+    const urlCategory = getUrlParam('category');
+    if (urlCategory) {
+      document.getElementById('category-filter').value = urlCategory;
+      currentCategory = urlCategory;
+    }
+
+    const urlSearch = getUrlParam('search');
+    if (urlSearch) {
+      document.getElementById('shop-search-input').value = urlSearch;
+    }
+
+    const urlCollection = getUrlParam('collection');
+    if (urlCollection) {
+      currentCollection = urlCollection;
+      const collectionInfo = (data.collections || []).find(c => c.id === urlCollection);
+      currentCollectionName = collectionInfo ? collectionInfo.name : urlCollection;
+    }
+
+    applyFilters();
+  });
+
+  function applyFilters() {
+    const category = document.getElementById('category-filter').value;
+    const sort = document.getElementById('sort-filter').value;
+    const search = document.getElementById('shop-search-input').value.trim().toLowerCase();
+
+    let filtered = [...allProducts];
+
+    // Collection filter (from a "Shop Collection" link)
+    if (currentCollection) {
+      filtered = filtered.filter(p => p.collection === currentCollection);
+    }
+
+    // Category filter
+    if (category !== 'all') {
+      filtered = filtered.filter(p => p.category === category);
+    }
+
+    // Search filter
+    if (search) {
+      filtered = filtered.filter(p =>
+        p.name.toLowerCase().includes(search) ||
+        p.category.toLowerCase().includes(search) ||
+        p.description.toLowerCase().includes(search)
+      );
+    }
+
+    // Sort
+    switch(sort) {
+      case 'price-low':
+        filtered.sort((a, b) => a.price - b.price);
+        break;
+      case 'price-high':
+        filtered.sort((a, b) => b.price - a.price);
+        break;
+      case 'rating':
+        filtered.sort((a, b) => b.rating - a.rating);
+        break;
+      case 'newest':
+        filtered.sort((a, b) => (b.is_new ? 1 : 0) - (a.is_new ? 1 : 0));
+        break;
+    }
+
+    renderProducts(filtered);
+    updateResultsCount(filtered.length);
+    updateActiveFilters(category, search);
+  }
+
+  function renderProducts(products) {
+    const container = document.getElementById('shop-grid-container');
+
+    if (products.length === 0) {
+      container.innerHTML = `
+        <div class="empty-state">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M16 16s-1.5-2-4-2-4 2-4 2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg>
+          <h3>No products found</h3>
+          <p>Try adjusting your filters to see more results.</p>
+        </div>
+      `;
+      return;
+    }
+
+    // Distribute products alternatively into two lists to form independent rows
+    const row1Products = products.filter((_, idx) => idx % 2 === 0);
+    const row2Products = products.filter((_, idx) => idx % 2 !== 0);
+
+    let htmlContent = '';
+
+    // Render Row 1
+    if (row1Products.length > 0) {
+      htmlContent += `
+        <div class="shop-row-container">
+          <div class="scrollable-shop-row" id="shop-row-1">
+            ${row1Products.map(p => renderProductCard(p)).join('')}
+          </div>
+        </div>
+      `;
+    }
+
+    // Render Row 2
+    if (row2Products.length > 0) {
+      htmlContent += `
+        <div class="shop-row-container">
+          <div class="scrollable-shop-row" id="shop-row-2">
+            ${row2Products.map(p => renderProductCard(p)).join('')}
+          </div>
+        </div>
+      `;
+    }
+
+    container.innerHTML = htmlContent;
+    initWishlistButtons();
+    initColorDots();
+    initScrollAnimations();
+  }
+
+  function updateResultsCount(count) {
+    document.getElementById('results-count').textContent = `${count} product${count !== 1 ? 's' : ''}`;
+  }
+
+  function updateActiveFilters(category, search) {
+    const container = document.getElementById('active-filters');
+    const chips = [];
+
+    if (currentCollection) {
+      chips.push(`<span class="filter-chip" onclick="clearCollection()">${currentCollectionName} <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></span>`);
+    }
+
+    if (category !== 'all') {
+      const label = category.charAt(0).toUpperCase() + category.slice(1);
+      chips.push(`<span class="filter-chip" onclick="clearCategory()">${label} <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></span>`);
+    }
+
+    if (search) {
+      chips.push(`<span class="filter-chip" onclick="clearSearch()">"${search}" <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></span>`);
+    }
+
+    container.innerHTML = chips.join('');
+  }
+
+  function clearCategory() {
+    document.getElementById('category-filter').value = 'all';
+    applyFilters();
+  }
+
+  function clearSearch() {
+    document.getElementById('shop-search-input').value = '';
+    applyFilters();
+  }
+
+  function clearCollection() {
+    currentCollection = null;
+    currentCollectionName = '';
+
+    // Drop the collection param from the URL without a full reload
+    const url = new URL(window.location.href);
+    url.searchParams.delete('collection');
+    window.history.replaceState({}, '', url);
+
+    applyFilters();
+  }
+</script>
+</body>
+</html>

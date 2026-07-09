@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Collections | Roger McDaniels</title>
+  <link rel="icon" type="image/png" href="../assets/rm-logo.jpg">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../css/main.css">
+  <style>
+    .collections-hero {
+      background: linear-gradient(135deg, #d4d4d4 0%, #e8e8e8 50%, #c8c8c8 100%);
+      padding-top: 140px;
+      padding-bottom: 60px;
+    }
+    .collections-hero-inner {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 0 40px;
+      text-align: center;
+    }
+    .collections-hero h1 {
+      font-size: 48px;
+      font-weight: 800;
+      letter-spacing: -1.5px;
+      margin-bottom: 12px;
+    }
+    .collections-hero p {
+      font-size: 18px;
+      color: var(--text-muted);
+    }
+    .collections-section {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 40px 40px 80px;
+    }
+    .collections-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 24px;
+    }
+    @media (max-width: 1024px) {
+      .collections-grid { grid-template-columns: repeat(2, 1fr); }
+    }
+    @media (max-width: 640px) {
+      .collections-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<div id="header-placeholder"></div>
+
+<section class="collections-hero">
+  <div class="collections-hero-inner">
+    <h1>Collections</h1>
+    <p>Curated edits for every moment</p>
+  </div>
+</section>
+
+<section class="collections-section">
+  <div class="collections-grid" id="collections-grid">
+    <!-- Collections rendered via JS -->
+  </div>
+</section>
+
+<section class="comments-section" id="comments-section"></section>
+
+<div id="footer-placeholder"></div>
+
+<script src="../js/main.js"></script>
+<script src="../components/header.js"></script>
+<script src="../components/footer.js"></script>
+<script src="../components/cart.js"></script>
+<script src="../components/checkout.js"></script>
+<script src="../components/comment.js"></script>
+<script src="../components/scroll-hint.js"></script>
+<script>
+  loadData().then(data => {
+    if (!data) return;
+    const grid = document.getElementById('collections-grid');
+    grid.innerHTML = data.collections.map((c, i) => `
+      <div class="collection-card fade-in stagger-${i + 1}">
+        <img src="${c.image}" alt="${c.name}" loading="lazy">
+        <div class="collection-content">
+          <p style="font-size: 12px; text-transform: uppercase; letter-spacing: 2px; color: rgba(255,255,255,0.7); margin-bottom: 4px;">${c.subtitle}</p>
+          <h3>${c.name}</h3>
+          <p>${c.description}</p>
+          <a href="shop.html?collection=${c.id}" class="btn btn-glass btn-sm" style="margin-top: 8px;">
+            Shop ${c.product_count} Items
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+          </a>
+        </div>
+      </div>
+    `).join('');
+    initScrollAnimations();
+  });
+</script>
+</body>
+</html>

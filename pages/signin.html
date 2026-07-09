@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sign In | Roger McDaniels</title>
+  <link rel="icon" type="image/png" href="../assets/rm-logo.jpg">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../css/main.css">
+  <style>
+    .auth-hero {
+      background: linear-gradient(135deg, #d4d4d4 0%, #e8e8e8 50%, #c8c8c8 100%);
+      padding-top: 140px;
+      padding-bottom: 60px;
+    }
+    .auth-hero-inner {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 0 40px;
+      text-align: center;
+    }
+    .auth-hero h1 {
+      font-size: 40px;
+      font-weight: 800;
+      letter-spacing: -1px;
+      margin-bottom: 10px;
+    }
+    .auth-hero p {
+      font-size: 16px;
+      color: var(--text-muted);
+    }
+    .auth-section {
+      max-width: 480px;
+      margin: 0 auto;
+      padding: 50px 20px 100px;
+    }
+    .auth-panel {
+      background: var(--glass-bg);
+      backdrop-filter: var(--blur);
+      border: 1px solid var(--glass-border);
+      border-radius: var(--radius-xl);
+      padding: 40px;
+      box-shadow: var(--glass-shadow);
+    }
+    .auth-tabs {
+      display: flex;
+      background: rgba(0,0,0,0.05);
+      border-radius: var(--radius-full);
+      padding: 4px;
+      margin-bottom: 30px;
+    }
+    .auth-tab {
+      flex: 1;
+      text-align: center;
+      padding: 10px;
+      font-size: 14px;
+      font-weight: 600;
+      border-radius: var(--radius-full);
+      cursor: pointer;
+      transition: all var(--transition-fast);
+      color: var(--text-muted);
+    }
+    .auth-tab.active {
+      background: #fff;
+      color: var(--text-dark);
+      box-shadow: var(--glass-shadow);
+    }
+    .auth-form { display: none; }
+    .auth-form.active { display: block; }
+    .auth-submit-btn {
+      width: 100%;
+      justify-content: center;
+      margin-top: 8px;
+    }
+    .auth-error {
+      background: rgba(239,68,68,0.08);
+      color: var(--danger);
+      font-size: 13px;
+      padding: 12px 14px;
+      border-radius: var(--radius-md);
+      margin-bottom: 18px;
+      display: none;
+    }
+    .auth-error.active { display: block; }
+    .auth-hint {
+      font-size: 12px;
+      color: var(--text-muted);
+      text-align: center;
+      margin-top: 20px;
+      line-height: 1.6;
+    }
+  </style>
+</head>
+<body>
+
+<div id="header-placeholder"></div>
+
+<section class="auth-hero">
+  <div class="auth-hero-inner">
+    <h1>Welcome</h1>
+    <p>Sign in to your account or create a new one</p>
+  </div>
+</section>
+
+<section class="auth-section">
+  <div class="auth-panel fade-in">
+    <div class="auth-tabs">
+      <div class="auth-tab active" data-tab="signin" onclick="switchAuthTab('signin')">Sign In</div>
+      <div class="auth-tab" data-tab="signup" onclick="switchAuthTab('signup')">Create Account</div>
+    </div>
+
+    <div class="auth-error" id="auth-error"></div>
+
+    <form class="auth-form active" id="signin-form" data-tab="signin">
+      <div class="form-group">
+        <label for="signin-email">Email</label>
+        <input type="email" id="signin-email" required placeholder="you@example.com">
+      </div>
+      <div class="form-group">
+        <label for="signin-password">Password</label>
+        <input type="password" id="signin-password" required placeholder="Enter your password">
+      </div>
+      <button type="submit" class="btn btn-primary auth-submit-btn">
+        Sign In
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+      </button>
+      <p class="auth-hint">Demo account: rm@nxnx.tech / password123</p>
+    </form>
+
+    <form class="auth-form" id="signup-form" data-tab="signup">
+      <div class="form-group">
+        <label for="signup-name">Full Name</label>
+        <input type="text" id="signup-name" required placeholder="Jane Doe">
+      </div>
+      <div class="form-group">
+        <label for="signup-email">Email</label>
+        <input type="email" id="signup-email" required placeholder="you@example.com">
+      </div>
+      <div class="form-group">
+        <label for="signup-password">Password</label>
+        <input type="password" id="signup-password" required placeholder="Create a password" minlength="6">
+      </div>
+      <button type="submit" class="btn btn-primary auth-submit-btn">
+        Create Account
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+      </button>
+      <p class="auth-hint">This is a demo store — accounts are stored in your browser only.</p>
+    </form>
+  </div>
+</section>
+
+<div id="footer-placeholder"></div>
+
+<script src="../js/main.js"></script>
+<script src="../components/header.js"></script>
+<script src="../components/footer.js"></script>
+<script src="../components/cart.js"></script>
+<script src="../components/checkout.js"></script>
+<script src="../components/comment.js"></script>
+<script>
+  function switchAuthTab(tab) {
+    document.querySelectorAll('.auth-tab').forEach(t => t.classList.toggle('active', t.dataset.tab === tab));
+    document.querySelectorAll('.auth-form').forEach(f => f.classList.toggle('active', f.dataset.tab === tab));
+    document.getElementById('auth-error').classList.remove('active');
+  }
+
+  function showAuthError(message) {
+    const el = document.getElementById('auth-error');
+    el.textContent = message;
+    el.classList.add('active');
+  }
+
+  function redirectAfterAuth() {
+    const redirect = getUrlParam('redirect');
+    window.location.href = redirect ? redirect : 'profile.html';
+  }
+
+  document.getElementById('signin-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const email = document.getElementById('signin-email').value.trim();
+    const password = document.getElementById('signin-password').value;
+
+    const result = await signIn({ email, password });
+    if (!result.success) {
+      showAuthError(result.message);
+      return;
+    }
+    showToast(`Welcome back, ${result.user.name.split(' ')[0]}!`, 'success');
+    setTimeout(redirectAfterAuth, 500);
+  });
+
+  document.getElementById('signup-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const name = document.getElementById('signup-name').value.trim();
+    const email = document.getElementById('signup-email').value.trim();
+    const password = document.getElementById('signup-password').value;
+
+    const result = await signUp({ name, email, password });
+    if (!result.success) {
+      showAuthError(result.message);
+      return;
+    }
+    showToast(`Welcome, ${result.user.name.split(' ')[0]}!`, 'success');
+    setTimeout(redirectAfterAuth, 500);
+  });
+
+  // If already signed in, just send them to their profile
+  if (state.currentUser) {
+    redirectAfterAuth();
+  }
+</script>
+</body>
+</html>

@@ -1,0 +1,597 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Product | Roger McDaniels</title>
+  <link rel="icon" type="image/png" href="../assets/rm-logo.jpg">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../css/main.css">
+  <style>
+    .product-page-wrap {
+      padding: 120px 20px 40px;
+      display: flex;
+      justify-content: center;
+    }
+
+    /* ===== Hero try-on card ===== */
+    .pdp-card {
+      position: relative;
+      width: 100%;
+      max-width: 420px;
+      height: 720px;
+      border-radius: 40px;
+      overflow: hidden;
+      box-shadow: var(--glass-shadow-lg);
+      background: #e5e5e5;
+    }
+    .pdp-card img.pdp-main-image {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      transition: opacity 0.25s ease;
+    }
+    .pdp-gradient {
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(to bottom, rgba(0,0,0,0) 40%, rgba(0,0,0,0.55) 100%);
+      pointer-events: none;
+    }
+    .pdp-top-bar {
+      position: absolute;
+      top: 20px;
+      left: 20px;
+      right: 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+    }
+    .pdp-icon-btn {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.9);
+      backdrop-filter: blur(6px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.12);
+      flex-shrink: 0;
+    }
+    .pdp-icon-btn svg {
+      width: 18px;
+      height: 18px;
+    }
+    .pdp-icon-btn.liked svg {
+      color: #ef4444;
+      fill: #ef4444;
+    }
+    .pdp-top-right {
+      display: flex;
+      gap: 10px;
+    }
+    .pdp-side-toolbar {
+      position: absolute;
+      top: 70px;
+      right: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      align-items: center;
+    }
+    .pdp-size-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      background: rgba(255,255,255,0.85);
+      backdrop-filter: blur(6px);
+      border-radius: var(--radius-lg);
+      padding: 4px 2px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.15);
+    }
+    .pdp-size-list-btn {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      background: transparent;
+      color: var(--text-dark);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-size: 12px;
+      transition: all var(--transition-fast);
+    }
+    .pdp-size-list-btn.active {
+      background: var(--accent);
+      color: #fff;
+    }
+    .pdp-swipe-hint {
+      position: absolute;
+      left: 50%;
+      bottom: 190px;
+      transform: translateX(-50%);
+      text-align: center;
+      color: #fff;
+      cursor: pointer;
+    }
+    .pdp-swipe-hint svg {
+      width: 30px;
+      height: 30px;
+      margin-bottom: 8px;
+    }
+    .pdp-swipe-hint p {
+      font-size: 13px;
+      font-weight: 500;
+      text-shadow: 0 1px 4px rgba(0,0,0,0.4);
+    }
+    .pdp-swipe-zone {
+      position: absolute;
+      top: 90px;
+      bottom: 150px;
+      left: 20px;
+      right: 70px;
+    }
+    .pdp-bottom-info {
+      position: absolute;
+      bottom: 92px;
+      left: 20px;
+      right: 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+      gap: 12px;
+    }
+    .pdp-bottom-info h1 {
+      color: #fff;
+      font-size: 20px;
+      font-weight: 700;
+      line-height: 1.25;
+      text-shadow: 0 1px 6px rgba(0,0,0,0.3);
+    }
+    .pdp-bottom-info .pdp-price {
+      color: rgba(255,255,255,0.9);
+      font-size: 15px;
+      font-weight: 500;
+      margin-top: 4px;
+    }
+    .pdp-add-btn {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: #000;
+      color: #ffff;
+      font-weight: 700;
+      font-size: 14px;
+      padding: 14px 22px;
+      border-radius: var(--radius-full);
+      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.5);
+      flex-shrink: 0;
+      white-space: nowrap;
+    }
+    .pdp-add-btn svg {
+      width: 16px;
+      height: 16px;
+    }
+    .pdp-thumb-strip {
+      padding: 10px;
+      position: absolute;
+      bottom: 20px;
+      left: 20px;
+      right: 20px;
+      display: flex;
+      gap: 10px;
+      overflow-x: auto;
+      scrollbar-width: none;
+    }
+    .pdp-thumb-strip::-webkit-scrollbar { display: none; }
+    .pdp-thumb {
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      overflow: hidden;
+      flex-shrink: 0;
+      border: 2px solid transparent;
+      cursor: pointer;
+      transition: all var(--transition-fast);
+    }
+    .pdp-thumb.active {
+      border-color: #fff;
+      transform: scale(1.12);
+    }
+    .pdp-thumb img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    /* ===== Details section below hero ===== */
+    .pdp-details {
+      max-width: 700px;
+      margin: 50px auto 0;
+      padding: 0 20px 60px;
+    }
+    .pdp-details-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 20px;
+      gap: 20px;
+    }
+    .pdp-details-header h2 {
+      font-size: 26px;
+      font-weight: 800;
+      letter-spacing: -0.5px;
+      margin-bottom: 6px;
+    }
+    .pdp-details-price {
+      font-size: 20px;
+      font-weight: 700;
+      color: var(--text-dark);
+    }
+    .pdp-rating {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 24px;
+    }
+    .pdp-rating .stars {
+      display: flex;
+      gap: 2px;
+    }
+    .pdp-rating .stars svg {
+      width: 15px;
+      height: 15px;
+      color: #f59e0b;
+    }
+    .pdp-rating span {
+      font-size: 13px;
+      color: var(--text-muted);
+    }
+    .pdp-description {
+      font-size: 14px;
+      line-height: 1.8;
+      color: var(--text-muted);
+      margin-bottom: 32px;
+    }
+    .pdp-option-group {
+      margin-bottom: 28px;
+    }
+    .pdp-option-group h4 {
+      font-size: 14px;
+      font-weight: 700;
+      margin-bottom: 12px;
+    }
+    .pdp-color-options {
+      display: flex;
+      gap: 12px;
+    }
+    .pdp-color-dot {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      cursor: pointer;
+      border: 2px solid transparent;
+      box-shadow: 0 0 0 1px rgba(0,0,0,0.1);
+      transition: transform var(--transition-fast);
+    }
+    .pdp-color-dot.active {
+      border-color: var(--text-dark);
+      transform: scale(1.15);
+    }
+    .pdp-size-options {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    .pdp-size-pill {
+      width: 48px;
+      height: 48px;
+      border-radius: var(--radius-full);
+      border: 1px solid rgba(0,0,0,0.15);
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all var(--transition-fast);
+      background: transparent;
+    }
+    .pdp-size-pill.active {
+      background: var(--text-dark);
+      color: #fff;
+      border-color: var(--text-dark);
+    }
+    .pdp-qty-control {
+      display: flex;
+      align-items: center;
+      gap: 18px;
+    }
+    .pdp-qty-control .qty-btn {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      border: 1px solid rgba(0,0,0,0.15);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background var(--transition-fast);
+    }
+    .pdp-qty-control .qty-btn:hover {
+      background: rgba(0,0,0,0.05);
+    }
+    .pdp-qty-control .qty-btn svg {
+      width: 14px;
+      height: 14px;
+    }
+    .pdp-qty-control span {
+      font-size: 16px;
+      font-weight: 700;
+      min-width: 24px;
+      text-align: center;
+    }
+    .pdp-full-add-btn {
+      width: 100%;
+      justify-content: center;
+      margin-top: 8px;
+      padding: 16px;
+      font-size: 15px;
+    }
+    .pdp-add-btn.preorder,
+    .pdp-full-add-btn.preorder {
+      background: #d97706 !important;
+      color: #fff !important;
+      box-shadow: 0 4px 14px rgba(217,119,6,0.4);
+    }
+    .pdp-related {
+      max-width: 1200px;
+      margin: 20px auto 0;
+      padding: 40px 20px 80px;
+    }
+
+    .pdp-wishlist-btn{
+      top: 0px;
+      right: 50px;
+    }
+
+    @media (max-width: 480px) {
+      .pdp-card { height: 640px; border-radius: 28px; }
+      .product-page-wrap { padding: 100px 12px 20px; }
+    }
+  </style>
+</head>
+<body>
+
+<div id="header-placeholder"></div>
+
+<div class="product-page-wrap">
+  <div class="pdp-card" id="pdp-card">
+    <!-- Rendered via JS -->
+  </div>
+</div>
+
+<div class="pdp-details" id="pdp-details">
+  <!-- Rendered via JS -->
+</div>
+
+<section class="pdp-related">
+  <div class="section-header fade-in">
+    <h2 class="section-title">You Might Also Like</h2>
+  </div>
+  <div class="products-grid grid-4 carousel-mobile" id="related-grid">
+    <!-- Rendered via JS -->
+  </div>
+</section>
+
+<div id="footer-placeholder"></div>
+
+<script src="../js/main.js"></script>
+<script src="../components/header.js"></script>
+<script src="../components/footer.js"></script>
+<script src="../components/cart.js"></script>
+<script src="../components/checkout.js"></script>
+<script src="../components/comment.js"></script>
+<script src="../components/scroll-hint.js"></script>
+<script>
+  let product = null;
+  let activeImageIndex = 0;
+  let activeSizeIndex = 0;
+  let selectedQty = 1;
+  const PREORDER_MESSAGE = 'Preordered! We will notify you at launch.';
+
+  loadData().then(data => {
+    if (!data) return;
+    const id = getUrlParam('id');
+    product = data.products.find(p => p.id === id) || data.products[0];
+    activeSizeIndex = Math.min(1, product.sizes.length - 1);
+    selectedQty = 1;
+
+    renderHero();
+    renderDetails();
+    renderRelated(data);
+    initWishlistButtons();
+    initScrollAnimations();
+  });
+
+  function currentImage() {
+    return assetPath((product.images && product.images[activeImageIndex]) || product.image);
+  }
+
+  function renderHero() {
+    const isLiked = state.wishlist.includes(product.id);
+    const card = document.getElementById('pdp-card');
+
+    card.innerHTML = `
+      <img src="${currentImage()}" alt="${product.name}" class="pdp-main-image" id="pdp-main-image">
+      <div class="pdp-gradient"></div>
+
+      <div class="pdp-top-bar">
+        <button class="pdp-icon-btn" aria-label="Back" onclick="history.back()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+        </button>
+        <div class="pdp-top-right">
+          <button class="pdp-icon-btn pdp-wishlist-btn wishlist-btn ${isLiked ? 'liked' : ''}" data-product-id="${product.id}" aria-label="Wishlist">
+            <svg viewBox="0 0 24 24" fill="${isLiked ? 'currentColor' : 'none'}" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+          </button>
+          <button class="pdp-icon-btn" aria-label="Share" onclick="sharePdp()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+          </button>
+        </div>
+      </div>
+
+      <div class="pdp-side-toolbar">
+        <!--<button class="pdp-icon-btn" aria-label="AR try-on" onclick="showToast('AR try-on coming soon!', 'success')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+        </button>-->
+        <div class="pdp-size-list" id="pdp-size-list">
+          ${product.sizes.map((size, i) => `
+            <button type="button" class="pdp-size-list-btn ${i === activeSizeIndex ? 'active' : ''}" onclick="selectSize(${i})">${size}</button>
+          `).join('')}
+        </div>
+      </div>
+
+      <div class="pdp-swipe-zone" onclick="nextImage()"></div>
+
+      <div class="pdp-bottom-info">
+        <div>
+          <h1>${product.name}</h1>
+          <div class="pdp-price" id="pdp-price">${formatPrice(getLineItemPrice(product, product.sizes[activeSizeIndex]))}</div>
+        </div>
+        <button class="pdp-add-btn ${product.is_preorder ? 'preorder' : ''}" onclick="addProductToCart()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          ${product.is_preorder ? 'Preorder' : 'Add to Cart'}
+        </button>
+      </div>
+
+      <div class="pdp-thumb-strip" id="pdp-thumb-strip">
+        ${(product.images || [product.image]).map((img, i) => `
+          <div class="pdp-thumb ${i === activeImageIndex ? 'active' : ''}" onclick="setActiveImage(${i})">
+            <img src="${assetPath(img)}" alt="${product.name} variant ${i + 1}">
+          </div>
+        `).join('')}
+      </div>
+    `;
+  }
+
+  function setActiveImage(index) {
+    activeImageIndex = index;
+    document.getElementById('pdp-main-image').src = currentImage();
+    document.querySelectorAll('.pdp-thumb').forEach((el, i) => el.classList.toggle('active', i === index));
+    document.querySelectorAll('.pdp-color-dot').forEach((el, i) => el.classList.toggle('active', i === index));
+  }
+
+  function nextImage() {
+    const images = product.images || [product.image];
+    const next = (activeImageIndex + 1) % images.length;
+    setActiveImage(next);
+  }
+
+  function selectSize(index) {
+    activeSizeIndex = index;
+    const size = product.sizes[activeSizeIndex];
+    const price = getLineItemPrice(product, size);
+
+    document.querySelectorAll('.pdp-size-list-btn').forEach((el, i) => el.classList.toggle('active', i === index));
+    document.querySelectorAll('.pdp-size-pill').forEach((el, i) => el.classList.toggle('active', i === index));
+
+    const priceEl = document.getElementById('pdp-price');
+    if (priceEl) priceEl.textContent = formatPrice(price);
+
+    const detailsPriceEl = document.getElementById('pdp-details-price');
+    if (detailsPriceEl) detailsPriceEl.textContent = formatPrice(price);
+
+    const fullAddBtn = document.getElementById('pdp-full-add-btn');
+    if (fullAddBtn) {
+      fullAddBtn.innerHTML = `
+        ${product.is_preorder ? 'Preorder' : 'Add to Cart'} &mdash; ${formatPrice(price)}
+        ${getIcon(product.is_preorder ? 'clock' : 'shopping-bag')}
+      `;
+    }
+  }
+
+  function addProductToCart() {
+    const size = product.sizes[activeSizeIndex];
+    addToCart(product.id, selectedQty, size, product.is_preorder ? PREORDER_MESSAGE : undefined);
+  }
+
+  function changePdpQty(delta) {
+    selectedQty = Math.max(1, selectedQty + delta);
+    const qtyEl = document.getElementById('pdp-qty-value');
+    if (qtyEl) qtyEl.textContent = selectedQty;
+  }
+
+  function sharePdp() {
+    openShareModal({
+      title: product.name,
+      text: `Check out ${product.name} on Roger McDaniels`,
+      url: window.location.href
+    });
+  }
+
+  function renderDetails() {
+    const details = document.getElementById('pdp-details');
+    const colorsHtml = product.colors.map((color, i) => `
+      <span class="pdp-color-dot ${i === activeImageIndex ? 'active' : ''}" style="background:${color}" onclick="setActiveImage(${i})"></span>
+    `).join('');
+
+    const sizesHtml = product.sizes.map((size, i) => `
+      <button type="button" class="pdp-size-pill ${i === activeSizeIndex ? 'active' : ''}" onclick="selectSize(${i})">${size}</button>
+    `).join('');
+
+    const currentPrice = getLineItemPrice(product, product.sizes[activeSizeIndex]);
+
+    details.innerHTML = `
+      <div class="pdp-details-header fade-in">
+        <div>
+          <h2>${product.name}</h2>
+          <span style="font-size:13px; color:var(--text-muted); text-transform:capitalize;">${product.category}${product.is_new ? ' &middot; New Arrival' : ''}</span>
+        </div>
+        <div class="pdp-details-price" id="pdp-details-price">${formatPrice(currentPrice)}</div>
+      </div>
+
+      <div class="pdp-rating fade-in">
+        <div class="stars">${renderStars(product.rating)}</div>
+        <span>${product.rating} (${product.reviews} reviews)</span>
+      </div>
+
+      <p class="pdp-description fade-in">${product.description}</p>
+
+      <!--<div class="pdp-option-group fade-in">
+        <h4>Color</h4>
+        <div class="pdp-color-options">${colorsHtml}</div>
+      </div>-->
+
+      <div class="pdp-option-group fade-in">
+        <h4>Size</h4>
+        <div class="pdp-size-options">${sizesHtml}</div>
+      </div>
+
+      <div class="pdp-option-group fade-in">
+        <h4>Quantity</h4>
+        <div class="pdp-qty-control">
+          <button type="button" class="qty-btn" aria-label="Decrease quantity" onclick="changePdpQty(-1)">${getIcon('minus')}</button>
+          <span id="pdp-qty-value">${selectedQty}</span>
+          <button type="button" class="qty-btn" aria-label="Increase quantity" onclick="changePdpQty(1)">${getIcon('plus')}</button>
+        </div>
+      </div>
+
+      <button class="btn btn-primary pdp-full-add-btn ${product.is_preorder ? 'preorder' : ''} fade-in" id="pdp-full-add-btn" onclick="addProductToCart()">
+        ${product.is_preorder ? 'Preorder' : 'Add to Cart'} &mdash; ${formatPrice(currentPrice)}
+        ${getIcon(product.is_preorder ? 'clock' : 'shopping-bag')}
+      </button>
+    `;
+  }
+
+  function renderRelated(data) {
+    const grid = document.getElementById('related-grid');
+    const related = data.products
+      .filter(p => p.category === product.category && p.id !== product.id)
+      .slice(0, 4);
+
+    grid.innerHTML = related.map(p => renderProductCard(p)).join('');
+    initWishlistButtons();
+    initColorDots();
+  }
+</script>
+</body>
+</html>
