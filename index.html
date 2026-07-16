@@ -263,11 +263,6 @@
         </div>
       `).join('');
     }
-
-    // Testimonials
-    // Instagram gallery — renders real posts via Instagram's official embed
-    // widget (see renderInstagramEmbeds in main.js for why this is the only
-    // legitimate way to pull live content from an Instagram profile).
     const instagramUrl = data.instagram_url || 'https://www.instagram.com/rmthefashionkeen';
     const profileLink = document.getElementById('instagram-profile-link');
     if (profileLink) profileLink.href = instagramUrl;

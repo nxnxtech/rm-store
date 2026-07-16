@@ -2362,6 +2362,7 @@ button {
   font-weight: 600;
   text-align: left;
   cursor: pointer;
+  color: #000;
 }
 
 .faq-question svg {

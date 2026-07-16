@@ -267,7 +267,7 @@ function renderPaystackStep() {
         <div class="paystack-brand"><span>Pay</span>stack</div>
         <span class="paystack-secure">${getIcon('shield-check')} Secure Payment</span>
       </div>
-      <p class="paystack-merchant">Pay <strong>Roger McDaniels</strong></p>
+      <p class="paystack-merchant">Pay <strong>Roger McDaniels</strong> / <strong>NxNx Tech</strong></p>
       <p class="paystack-amount">${formatPrice(grandTotal)}</p>
       <p class="paystack-email">${customer.email}</p>
 
@@ -601,7 +601,7 @@ function openReceiptModal(order) {
     <div class="receipt-actions">
       <button class="btn btn-primary" onclick="downloadReceipt()">${getIcon('arrow-right')} Download Receipt</button>
       ${order.guestCheckout
-        ? `<a href="${pagePath('signup.html')}" class="btn btn-glass">Create Account</a>`
+        ? `<a href="${pagePath('signin.html')}" class="btn btn-glass">Create Account</a>`
         : `<a href="${pagePath('orders.html')}" class="btn btn-glass">View Order History</a>`
       }
     </div>

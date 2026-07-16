@@ -1,17 +1,6 @@
-/* ============================================
-   DB-BACKED CART
-   Signed-in users: cart lives in rm_store_cart_items
-   and is the source of truth (loaded on page load).
-   Guests: cart stays in localStorage as before, and
-   is merged into the DB the next time they sign in.
-   ============================================ */
-
 async function loadCartFromDb() {
   if (!state.currentUser) return; // guest — keep the localStorage cart as-is
 
-  // Merge any items added while browsing as a guest into the DB cart first
-  // (only relevant if cookies were accepted, since that's the only way a
-  // guest cart could have been persisted to localStorage).
   if (hasCookieConsent()) {
     const guestCart = JSON.parse(localStorage.getItem('Roger McDaniels_cart')) || [];
     for (const item of guestCart) {
