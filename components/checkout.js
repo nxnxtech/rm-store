@@ -139,7 +139,7 @@ async function renderCheckoutForm() {
       </div>
       <div class="form-group">
         <label for="checkout-phone">Phone Number</label>
-        <input type="tel" id="checkout-phone" required placeholder="02X XXX XXXX" value="${customer.phone || ''}">
+        <input type="tel" id="checkout-phone" required placeholder="02X XXX XXX" value="${customer.phone || ''}">
       </div>
       <div class="form-group">
         <label for="checkout-address">Delivery Address</label>
@@ -287,11 +287,58 @@ function renderPaystackStep() {
   document.getElementById('paystack-payment-form').addEventListener('submit', handlePaystackPaymentSubmit);
 }
 
+async function checkStockAvailability(cartItems) {
+  const idsToCheck = cartItems.filter((item) => item.dbId).map((item) => item.dbId);
+  if (idsToCheck.length === 0) return { available: true, shortfalls: [] };
+
+  const { data: products, error } = await supabase
+    .from('rm_store_products')
+    .select('id, name, stock_quantity')
+    .in('id', idsToCheck);
+
+  if (error) {
+    // Fail open here — a stock-check failure shouldn't block checkout.
+    // The atomic RPC in submitOrderToDatabase is the real source of
+    // truth and will still catch this properly.
+    console.error('Stock pre-check failed, proceeding anyway:', error);
+    return { available: true, shortfalls: [] };
+  }
+
+  const stockById = new Map((products || []).map((p) => [p.id, p]));
+  const shortfalls = [];
+
+  for (const item of cartItems) {
+    if (!item.dbId) continue;
+    const product = stockById.get(item.dbId);
+    const stock = product ? product.stock_quantity : 0;
+    if (stock < item.qty) {
+      shortfalls.push({ name: product?.name || item.name, requested: item.qty, available: stock });
+    }
+  }
+
+  return { available: shortfalls.length === 0, shortfalls };
+}
+
 async function initializePaystackPayment({ button = null, isRetry = false } = {}) {
   if (!state.pendingOrder) return;
 
   const btn = button || document.querySelector('.paystack-pay-btn');
   if (btn) setButtonLoading(btn, isRetry ? 'Retrying payment...' : 'Please wait loading...');
+
+  // Catch the common case — an item sold out between adding to cart and
+  // checking out — before charging the customer at all. This is a
+  // best-effort check (there's still a small race window right up until
+  // payment completes), the real enforcement happens atomically in
+  // rm_store_create_paid_order once payment succeeds.
+  const { available, shortfalls } = await checkStockAvailability(state.pendingOrder.cartItems);
+  if (!available) {
+    const detail = shortfalls
+      .map((s) => `${s.name} (only ${s.available} left, ${s.requested} requested)`)
+      .join(', ');
+    showToast(`Some items are no longer available: ${detail}`, 'error');
+    if (btn) clearButtonLoading(btn);
+    return;
+  }
 
   try {
     await loadPaystackScript();
@@ -412,10 +459,20 @@ async function submitOrderToDatabase(reference) {
   const { cartItems, subtotal, shippingFee, grandTotal, customer } = state.pendingOrder;
   const guestCheckout = !state.currentUser;
 
+  // Built once, used both as the denormalized `items` snapshot on the
+  // order row and as the payload for rm_store_order_items below.
+  const itemsSnapshot = cartItems.map(({ dbId, name, image, qty, size, unitPrice }) => ({
+    product_id: dbId || null,
+    name,
+    image,
+    size: size || null,
+    unit_price: unitPrice,
+    qty
+  }));
+
   try {
-    const { data: orderRow, error: orderError } = await supabase
-      .from('rm_store_orders')
-      .insert({
+    const { data: result, error: orderError } = await supabase.rpc('rm_store_create_paid_order', {
+      p_order: {
         user_id: guestCheckout ? null : state.currentUser.id,
         status: 'Paid',
         customer_name: customer.name,
@@ -426,31 +483,23 @@ async function submitOrderToDatabase(reference) {
         city: customer.city,
         subtotal: subtotal,
         shipping_fee: shippingFee,
-        delivery_fee: shippingFee,
         total: grandTotal,
         payment_reference: reference,
         payment_method: 'Paystack'
-      })
-      .select()
-      .single();
+      },
+      p_items: itemsSnapshot
+    });
 
     if (orderError) throw orderError;
 
-    const orderItemsPayload = cartItems.map(({ dbId, name, image, qty, size, unitPrice }) => ({
-      order_id: orderRow.id,
-      product_id: dbId || null,
-      name,
-      image,
-      size: size || null,
-      unit_price: unitPrice,
-      qty
-    }));
-
-    const { error: itemsError } = await supabase
-      .from('rm_store_order_items')
-      .insert(orderItemsPayload);
-
-    if (itemsError) throw itemsError;
+    if (result.stock_conflict) {
+      // Payment already succeeded and the order was still saved (never
+      // lost), but stock ran out for one or more items in the narrow
+      // window between the pre-payment check and payment completing.
+      // This needs a human — flagged in the DB (stock_conflict = true)
+      // and escalated via the Telegram order notifier.
+      console.warn('Order saved with stock conflict:', result.shortfalls);
+    }
 
     if (guestCheckout) {
       // Guest cart only ever lived in memory/localStorage — nothing to
@@ -465,21 +514,26 @@ async function submitOrderToDatabase(reference) {
     updateCartBadge();
 
     const order = {
-      id: orderRow.order_number,
-      reference: orderRow.reference,
-      date: orderRow.created_at,
-      status: orderRow.status,
+      id: result.order_number,
+      reference,
+      date: result.created_at,
+      status: 'Paid',
       customer,
-      items: orderItemsPayload,
+      items: itemsSnapshot,
       subtotal,
       shippingFee,
       total: grandTotal,
-      guestCheckout
+      guestCheckout,
+      stockConflict: result.stock_conflict
     };
 
     state.pendingOrder = null;
     closeCheckoutModal();
     openReceiptModal(order);
+
+    if (result.stock_conflict) {
+      showToast('Your payment was successful. One or more items are on backorder — we will reach out about your delivery.', 'success');
+    }
   } catch (error) {
     console.error('Order failed to save:', error);
     // Payment already succeeded — never re-charge from here. Only the
@@ -568,7 +622,7 @@ function openReceiptModal(order) {
       ${getIcon('shield-check')}
       <div>
         <strong>Save this receipt now.</strong>
-        <p>Take a screenshot or use the download button below${order.guestCheckout ? " - as a guest, this order won't appear anywhere else on the site" : ''}.</p>
+        <p>Take a screenshot or use the download button below${order.guestCheckout ? " — as a guest, this order won't appear anywhere else on the site" : ''}.</p>
       </div>
     </div>
 

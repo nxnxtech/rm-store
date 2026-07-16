@@ -873,6 +873,41 @@ button {
   z-index: 2;
 }
 
+.product-image-wrap .product-tags {
+  position: absolute;
+  top: 14px;
+  left: 14px;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+}
+
+.product-image-wrap .product-tags .tag {
+  position: static;
+}
+
+.tag-out-of-stock {
+  background: #6b7280;
+}
+
+.tag-low-stock {
+  background: #b45309;
+}
+
+.product-image-wrap.out-of-stock img {
+  filter: grayscale(55%);
+  opacity: 0.55;
+}
+
+.quick-add-btn.disabled,
+.quick-add-btn:disabled {
+  opacity: 0.6 !important;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
 .wishlist-btn {
   position: absolute;
   top: 14px;
@@ -1860,7 +1895,6 @@ button {
   .carousel-mobile {
     display: flex !important;
     overflow-x: auto;
-    overflow-y: hidden;
     scroll-snap-type: x mandatory;
     gap: 16px;
     padding: 4px 4px 16px;
@@ -1880,19 +1914,6 @@ button {
   .carousel-mobile.categories-grid > * {
     flex: 0 0 60%;
   }
-}
-
-/* Carousel items must only ever move on the x-axis (scrolling). Card
-   hover effects elsewhere on the site lift on the y-axis
-   (translateY), which fights the horizontal scroll/snap and makes
-   items look like they're bouncing — so it's disabled specifically
-   for anything sitting inside a carousel track. */
-.carousel-mobile > .product-card:hover,
-.carousel-mobile > .category-card:hover,
-.carousel-mobile > .collection-card:hover,
-.instagram-carousel-track > *:hover,
-.comment-list > .comment-item:hover {
-  transform: none;
 }
 
 /* ============================================
@@ -1962,7 +1983,6 @@ button {
   align-items: center;
   justify-content: center;
   transition: background var(--transition-fast);
-  color: #000;
 }
 
 .cart-modal-close:hover {
@@ -2213,7 +2233,6 @@ button {
 .instagram-carousel-viewport {
   flex: 1;
   overflow-x: auto;
-  overflow-y: hidden;
   scroll-snap-type: x mandatory;
   -webkit-overflow-scrolling: touch;
   scrollbar-width: none;
@@ -2363,7 +2382,6 @@ button {
   font-weight: 600;
   text-align: left;
   cursor: pointer;
-  color: #000;
 }
 
 .faq-question svg {
@@ -2452,7 +2470,6 @@ button {
 .comment-carousel-viewport {
   flex: 1;
   overflow-x: auto;
-  overflow-y: hidden;
   scroll-snap-type: x mandatory;
   -webkit-overflow-scrolling: touch;
   scrollbar-width: none;
@@ -3242,7 +3259,6 @@ button {
   align-items: center;
   justify-content: center;
   transition: background var(--transition-fast);
-  color:#000;
 }
 
 .checkout-modal-close:hover {

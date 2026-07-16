@@ -1,3 +1,10 @@
+/* ============================================
+   COOKIE CONSENT
+   Cart and wishlist are only persisted to
+   localStorage once the visitor has explicitly
+   accepted cookies. Until then (or if declined),
+   both stay in-memory only and are lost on refresh.
+   ============================================ */
 const COOKIE_CONSENT_KEY = 'Roger McDaniels_cookie_consent'; // 'accepted' | 'declined'
 
 function hasCookieConsent() {
@@ -57,10 +64,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   };
 
-  // Other pages (e.g. contact.html) can `await state.authReady` to know
-  // when state.currentUser has been fully resolved before prefilling
-  // anything from it.
-  state.authReady = bootApp();
+  void bootApp();
 });
 
 /* ============================================
@@ -164,27 +168,6 @@ async function loadComments() {
     message: c.message,
     date: c.created_at
   }));
-}
-
-// Saves a contact form submission to rm_store_messages. Works for both
-// guests (user_id null) and signed-in users, matching the guest-checkout
-// pattern used elsewhere on the site.
-async function submitContactMessage({ firstName, lastName, email, subject, message }) {
-  const { error } = await supabase.from('rm_store_messages').insert({
-    user_id: state.currentUser ? state.currentUser.id : null,
-    first_name: firstName,
-    last_name: lastName,
-    email,
-    subject,
-    message
-  });
-
-  if (error) {
-    console.error('Failed to save contact message:', error);
-    return { success: false, message: error.message };
-  }
-
-  return { success: true };
 }
 
 /* ============================================
@@ -464,7 +447,7 @@ function renderCookieBanner() {
           </ul>
         </div>
         <div class="cookie-consent-warning" id="cookie-consent-warning" style="display:none;">
-          If you refuse, your cart and wishlist items will not be saved, anything you add will disappear every time the page is refreshed.
+          If you refuse, your cart and wishlist items will not be saved — anything you add will disappear every time the page is refreshed.
         </div>
       </div>
       <div class="cookie-consent-actions">
@@ -893,20 +876,41 @@ function renderProductCard(product) {
   const isPreorder = !!product.is_preorder;
   const preorderMessage = 'Preordered! We will notify you at launch.';
 
-  const tagHtml = isPreorder
-    ? '<span class="tag tag-preorder">Preorder</span>'
-    : (product.is_new ? '<span class="tag tag-new">New</span>' : '');
+  // stock_quantity may be missing on older rows — only treat a product as
+  // out-of-stock/low-stock when we actually have a number to check, and
+  // preorder items are exempt (they're expected to have 0 on-hand stock).
+  const hasStockInfo = typeof product.stock === 'number';
+  const isOutOfStock = hasStockInfo && !isPreorder && product.stock <= 0;
+  const isLowStock = hasStockInfo && !isPreorder && product.stock > 0 && product.stock <= 5;
+
+  const tags = [];
+  if (isPreorder) {
+    tags.push('<span class="tag tag-preorder">Preorder</span>');
+  } else if (isOutOfStock) {
+    tags.push('<span class="tag tag-out-of-stock">Out of Stock</span>');
+  } else if (product.is_new) {
+    tags.push('<span class="tag tag-new">New</span>');
+  }
+  if (isLowStock) {
+    tags.push(`<span class="tag tag-low-stock">Only ${product.stock} left</span>`);
+  }
+  const tagsHtml = tags.length ? `<div class="product-tags">${tags.join('')}</div>` : '';
+
+  const quickAddLabel = isOutOfStock ? 'Out of Stock' : (isPreorder ? 'Preorder' : 'Quick Add');
+  const quickAddOnClick = isOutOfStock
+    ? ''
+    : `onclick="event.stopPropagation(); handleQuickAddClick(this, '${product.id}', '${product.sizes[0]}', '${isPreorder ? preorderMessage : ''}')"`;
 
   return `
     <div class="product-card fade-in" onclick="window.location.href='${pagePath('product.html')}?id=${product.id}'">
-      <div class="product-image-wrap">
+      <div class="product-image-wrap ${isOutOfStock ? 'out-of-stock' : ''}">
         <img src="${assetPath(product.image)}" alt="${product.name}" loading="lazy">
-        ${tagHtml}
+        ${tagsHtml}
         <button class="wishlist-btn ${isLiked ? 'liked' : ''}" data-product-id="${product.id}" onclick="event.stopPropagation()">
           <svg viewBox="0 0 24 24" fill="${isLiked ? '#ef4444' : 'none'}" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
         </button>
-        <button class="quick-add-btn ${isPreorder ? 'preorder' : ''}" onclick="event.stopPropagation(); handleQuickAddClick(this, '${product.id}', '${product.sizes[0]}', '${isPreorder ? preorderMessage : ''}')" aria-label="${isPreorder ? 'Preorder' : 'Add'} ${product.name}">
-          <span class="quick-add-text">${isPreorder ? 'Preorder' : 'Quick Add'}</span>
+        <button class="quick-add-btn ${isPreorder ? 'preorder' : ''} ${isOutOfStock ? 'disabled' : ''}" ${isOutOfStock ? 'disabled' : ''} ${quickAddOnClick} aria-label="${quickAddLabel} ${product.name}">
+          <span class="quick-add-text">${quickAddLabel}</span>
           <span class="quick-add-icon">${getIcon(isPreorder ? 'clock' : 'shopping-bag')}</span>
         </button>
       </div>
