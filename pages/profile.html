@@ -160,6 +160,17 @@
     @media (max-width: 768px) {
       .profile-edit-grid { grid-template-columns: 1fr; }
     }
+    .profile-edit-card.full-width {
+      grid-column: 1 / -1;
+    }
+    .profile-edit-card .form-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+    @media (max-width: 640px) {
+      .profile-edit-card .form-row { grid-template-columns: 1fr; }
+    }
     @media (max-width: 640px) {
       .profile-card { flex-direction: column; text-align: center; }
       .profile-quick-links { display: none;}
@@ -181,14 +192,17 @@
 
 <div id="footer-placeholder"></div>
 
-<script src="../js/main.js"></script>
-<script src="../components/header.js"></script>
-<script src="../components/footer.js"></script>
-<script src="../components/cart.js"></script>
-<script src="../components/checkout.js"></script>
-<script src="../components/comment.js"></script>
-<script src="../components/scroll-hint.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script defer src="../js/supabase-client.js"></script>
+<script defer src="../js/main.js"></script>
+<script defer src="../components/header.js"></script>
+<script defer src="../components/footer.js"></script>
+<script defer src="../components/cart.js"></script>
+<script defer src="../components/checkout.js"></script>
+<script defer src="../components/comment.js"></script>
+<script defer src="../components/scroll-hint.js"></script>
 <script>
+  document.addEventListener('DOMContentLoaded', () => {
   if (requireAuth()) {
     const user = state.currentUser;
     const joinedDate = user.joined ? new Date(user.joined).toLocaleDateString('en-US', { month: 'long', year: 'numeric' }) : '';
@@ -255,6 +269,36 @@
             <button type="submit" class="btn btn-primary">Update Password</button>
           </form>
         </div>
+
+        <div class="profile-edit-card fade-in stagger-2 full-width">
+          <h3>${getIcon('map-pin')} Delivery Details</h3>
+          <div class="profile-form-msg" id="delivery-msg"></div>
+          <form id="delivery-form">
+            <div class="form-group">
+              <label for="edit-phone">Phone Number</label>
+              <input type="tel" id="edit-phone" required placeholder="024 123 4567" value="${user.phone || ''}">
+            </div>
+            <div class="form-group">
+              <label for="edit-address">Delivery Address</label>
+              <input type="text" id="edit-address" required placeholder="House number, street name, area name" value="${user.address || ''}">
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label for="edit-region">Region</label>
+                <select id="edit-region" required onchange="populateProfileCities()">
+                  <option value="">Select region</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label for="edit-city">City / Town</label>
+                <select id="edit-city" required>
+                  <option value="">Select region first</option>
+                </select>
+              </div>
+            </div>
+            <button type="submit" class="btn btn-primary">Save Delivery Details</button>
+          </form>
+        </div>
       </div>
 
       <div class="profile-signout fade-in">
@@ -264,16 +308,56 @@
 
     initScrollAnimations();
 
+    // Populate the delivery-details region/city selects with the user's
+    // saved values, same cascading pattern as checkout.
+    (async () => {
+      const regions = await loadRegions();
+      const regionSelect = document.getElementById('edit-region');
+      const citySelect = document.getElementById('edit-city');
+      if (!regionSelect) return;
+
+      regionSelect.innerHTML = '<option value="">Select region</option>' +
+        regions.map(r => `<option value="${r.region}">${r.region}</option>`).join('');
+
+      if (user.region) {
+        regionSelect.value = user.region;
+        populateProfileCities();
+        if (user.city) citySelect.value = user.city;
+      }
+    })();
+
     document.getElementById('name-form').addEventListener('submit', async (e) => {
       e.preventDefault();
       const msg = document.getElementById('name-msg');
-      const result = await updateProfileName(document.getElementById('edit-name').value);
+      const name = document.getElementById('edit-name').value;
+      const result = await updateUserProfile({ name });
       msg.className = 'profile-form-msg ' + (result.success ? 'success' : 'error');
-      msg.textContent = result.success ? 'Name updated successfully.' : result.message;
+      msg.textContent = result.success ? 'Profile updated successfully.' : result.message;
       if (result.success) {
         document.querySelector('.profile-info h2').textContent = state.currentUser.name;
-        document.querySelector('.profile-avatar').textContent = state.currentUser.avatar ? '' : state.currentUser.name.charAt(0).toUpperCase();
-        showToast('Name updated!', 'success');
+        showToast('Profile updated!', 'success');
+      }
+    });
+
+    document.getElementById('delivery-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const msg = document.getElementById('delivery-msg');
+      const phone = document.getElementById('edit-phone').value.trim();
+      const address = document.getElementById('edit-address').value.trim();
+      const region = document.getElementById('edit-region').value;
+      const city = document.getElementById('edit-city').value;
+
+      if (!region || !city) {
+        msg.className = 'profile-form-msg error';
+        msg.textContent = 'Please select your region and city/town.';
+        return;
+      }
+
+      const result = await updateUserProfile({ phone, address, region, city });
+      msg.className = 'profile-form-msg ' + (result.success ? 'success' : 'error');
+      msg.textContent = result.success ? 'Delivery details updated successfully.' : result.message;
+      if (result.success) {
+        showToast('Delivery details updated!', 'success');
       }
     });
 
@@ -298,6 +382,21 @@
         showToast('Password updated!', 'success');
       }
     });
+  }
+  });
+
+  function populateProfileCities() {
+    const regionSelect = document.getElementById('edit-region');
+    const citySelect = document.getElementById('edit-city');
+    const region = state.regionsData.find(r => r.region === regionSelect.value);
+
+    if (!region) {
+      citySelect.innerHTML = '<option value="">Select region first</option>';
+      return;
+    }
+
+    citySelect.innerHTML = '<option value="">Select city</option>' +
+      region.cities.map(c => `<option value="${c}">${c}</option>`).join('');
   }
 </script>
 </body>

@@ -110,6 +110,37 @@
     .order-card-footer strong {
       font-size: 16px;
     }
+    .order-card-footer-totals {
+      display: flex;
+      align-items: baseline;
+      gap: 14px;
+    }
+    .order-delivery-fee {
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+    .order-badges {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .delivery-status-processing {
+      background: rgba(234,179,8,0.12);
+      color: #b45309;
+    }
+    .delivery-status-transit {
+      background: rgba(59,130,246,0.12);
+      color: #2563eb;
+    }
+    .delivery-status-delivered {
+      background: rgba(34,197,94,0.1);
+      color: var(--success);
+    }
+    .delivery-status-cancelled {
+      background: rgba(239,68,68,0.08);
+      color: var(--danger);
+    }
     @media (max-width: 640px) {
       .order-card-header {
         display: flex;
@@ -147,34 +178,56 @@
 
 <div id="footer-placeholder"></div>
 
-<script src="../js/main.js"></script>
-<script src="../components/header.js"></script>
-<script src="../components/footer.js"></script>
-<script src="../components/cart.js"></script>
-<script src="../components/checkout.js"></script>
-<script src="../components/comment.js"></script>
-<script src="../components/scroll-hint.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script defer src="../js/supabase-client.js"></script>
+<script defer src="../js/main.js"></script>
+<script defer src="../components/header.js"></script>
+<script defer src="../components/footer.js"></script>
+<script defer src="../components/cart.js"></script>
+<script defer src="../components/checkout.js"></script>
+<script defer src="../components/comment.js"></script>
+<script defer src="../components/scroll-hint.js"></script>
 <script>
-  const ordersContent = document.getElementById('orders-content');
+  function deliveryStatusClass(status) {
+    const s = (status || '').toLowerCase();
+    if (s.includes('deliver')) return 'delivery-status-delivered';
+    if (s.includes('transit') || s.includes('shipped') || s.includes('out for')) return 'delivery-status-transit';
+    if (s.includes('cancel')) return 'delivery-status-cancelled';
+    return 'delivery-status-processing';
+  }
 
-  if (state.orders.length === 0) {
-    ordersContent.innerHTML = `
-      <div class="empty-state">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="M3.3 7 12 12l8.7-5"/><path d="M12 22V12"/></svg>
-        <h3>No orders yet</h3>
-        <p>Once you place an order, it'll show up here.</p>
-        <a href="shop.html" class="btn btn-primary" style="margin-top: 20px;">Start Shopping</a>
-      </div>
-    `;
-  } else {
-    ordersContent.innerHTML = state.orders.map((order, i) => `
+  document.addEventListener('DOMContentLoaded', () => {
+  (async () => {
+    if (!requireAuth()) return;
+
+    const ordersContent = document.getElementById('orders-content');
+    ordersContent.innerHTML = `<div class="empty-state"><p>Loading your orders...</p></div>`;
+
+    const orders = await loadOrders();
+
+    if (orders.length === 0) {
+      ordersContent.innerHTML = `
+        <div class="empty-state">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="M3.3 7 12 12l8.7-5"/><path d="M12 22V12"/></svg>
+          <h3>No orders yet</h3>
+          <p>Once you place an order, it'll show up here.</p>
+          <a href="shop.html" class="btn btn-primary" style="margin-top: 20px;">Start Shopping</a>
+        </div>
+      `;
+      return;
+    }
+
+    ordersContent.innerHTML = orders.map((order, i) => `
       <div class="order-card fade-in stagger-${(i % 4) + 1}">
         <div class="order-card-header">
           <div>
             <h4>Order #${order.id}</h4>
             <span>${new Date(order.date).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}</span>
           </div>
-          <span class="order-status">${getIcon('check')} ${order.status}</span>
+          <div class="order-badges">
+            <span class="order-status">${getIcon('check')} ${order.status}</span>
+            <span class="order-status order-status-delivery ${deliveryStatusClass(order.deliveryStatus)}">Delivery:${getIcon('truck')} ${order.deliveryStatus}</span>
+          </div>
         </div>
         <div class="order-card-items">
           ${order.items.map(item => `
@@ -189,12 +242,16 @@
         </div>
         <div class="order-card-footer">
           <span>Shipped to ${order.customer.city}</span>
-          <strong>${formatPrice(order.total)}</strong>
+          <div class="order-card-footer-totals">
+            ${order.deliveryFee != null ? `<span class="order-delivery-fee">Delivery: ${formatPrice(order.deliveryFee)}</span>` : ''}
+            <strong>${formatPrice(order.total)}</strong>
+          </div>
         </div>
       </div>
     `).join('');
     initScrollAnimations();
-  }
+  })();
+  });
 </script>
 </body>
 </html>

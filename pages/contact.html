@@ -194,8 +194,8 @@
 
 <section class="contact-hero">
   <div class="contact-hero-inner">
-    <h1>Holla Me</h1>
-    <p>Even just to say 'Hello', I'll appreciate it.</p>
+    <h1 id="contact-title">Get in Touch</h1>
+    <p id="contact-subtitle">We'd love to hear from you.</p>
   </div>
 </section>
 
@@ -208,7 +208,7 @@
         </div>
         <div class="contact-info-text">
           <h4>Email</h4>
-          <p>nxnxtech@gmail.com</p>
+          <p id="contact-email">—</p>
         </div>
       </div>
       <div class="contact-info-card fade-in stagger-1">
@@ -217,24 +217,24 @@
         </div>
         <div class="contact-info-text">
           <h4>Phone</h4>
-          <p>+233 599 505 817</p>
+          <p id="contact-phone">—</p>
         </div>
       </div>
-      <!--<div class="contact-info-card fade-in stagger-2">
+      <div class="contact-info-card fade-in stagger-2" id="contact-address-card" style="display: none;">
         <div class="contact-info-icon">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
         </div>
         <div class="contact-info-text">
           <h4>Address</h4>
-          <p>123 Fashion Ave, New York, NY 10001</p>
+          <p id="contact-address">—</p>
         </div>
-      </div>-->
+      </div>
       <div class="contact-hours fade-in stagger-3">
         <h4>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
           Business Hours
         </h4>
-        <p>24/7 - All day : All night</p>
+        <p id="contact-hours">—</p>
       </div>
     </div>
 
@@ -252,10 +252,10 @@
             <input type="text" id="lastName" name="lastName" required placeholder="McDaniels">
           </div>
         </div>
-        <!--<div class="form-group">
+        <div class="form-group">
           <label for="email">Email</label>
-          <input type="email" id="email" name="email" required placeholder="john@example.com">
-        </div>-->
+          <input type="email" id="email" name="email" required placeholder="rm@example.com">
+        </div>
         <div class="form-group">
           <label for="subject">Subject</label>
           <select id="subject" name="subject" required>
@@ -284,22 +284,70 @@
 
 <div id="footer-placeholder"></div>
 
-<script src="../js/main.js"></script>
-<script src="../components/header.js"></script>
-<script src="../components/footer.js"></script>
-<script src="../components/cart.js"></script>
-<script src="../components/checkout.js"></script>
-<script src="../components/comment.js"></script>
-<script src="../components/scroll-hint.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script defer src="../js/supabase-client.js"></script>
+<script defer src="../js/main.js"></script>
+<script defer src="../components/header.js"></script>
+<script defer src="../components/footer.js"></script>
+<script defer src="../components/cart.js"></script>
+<script defer src="../components/checkout.js"></script>
+<script defer src="../components/comment.js"></script>
+<script defer src="../components/scroll-hint.js"></script>
 <script>
-  function handleContactSubmit(e) {
+  // Prefill name/email from the signed-in user's DB profile once auth has
+  // resolved, and populate the contact info panel + hero copy from
+  // rm_store_site_settings (key = 'contact'). state.authReady is set by
+  // main.js's DOMContentLoaded handler; on this page's first paint
+  // state.currentUser may just be the fast localStorage copy (or nothing
+  // yet), so we wait for the real resolution before touching the form.
+  document.addEventListener('DOMContentLoaded', async () => {
+    if (window.state?.authReady) {
+      try { await state.authReady; } catch (_) { /* already logged in main.js */ }
+    }
+
+    const user = state.currentUser;
+    if (user) {
+      const [first, ...rest] = (user.name || '').split(' ');
+      const firstNameEl = document.getElementById('firstName');
+      const lastNameEl = document.getElementById('lastName');
+      const emailEl = document.getElementById('email');
+
+      if (firstNameEl && !firstNameEl.value) firstNameEl.value = first || '';
+      if (lastNameEl && !lastNameEl.value) lastNameEl.value = rest.join(' ') || '';
+      if (emailEl && !emailEl.value) emailEl.value = user.email || '';
+    }
+
+    if (typeof loadData === 'function') {
+      const data = await loadData();
+      const contact = data?.contact || {};
+
+      const setText = (id, value) => {
+        const el = document.getElementById(id);
+        if (el && value) el.textContent = value;
+      };
+
+      setText('contact-title', contact.title);
+      setText('contact-subtitle', contact.subtitle);
+      setText('contact-email', contact.email);
+      setText('contact-phone', contact.phone);
+      setText('contact-hours', contact.hours);
+
+      if (contact.address) {
+        setText('contact-address', contact.address);
+        const addressCard = document.getElementById('contact-address-card');
+        if (addressCard) addressCard.style.display = '';
+      }
+    }
+  });
+
+  async function handleContactSubmit(e) {
     e.preventDefault();
     const btn = e.target.querySelector('button[type="submit"]');
     const originalText = btn.innerHTML;
-    btn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="animation: spin 1s linear infinite"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg> Opening WhatsApp...';
+    btn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="animation: spin 1s linear infinite"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg> Sending...';
     btn.disabled = true;
 
-    // 1. Gather form values
+    // Gather form values
     const firstName = document.getElementById('firstName').value;
     const lastName = document.getElementById('lastName').value;
     const email = document.getElementById('email').value;
@@ -307,38 +355,33 @@
     const subjectText = subjectDropdown.options[subjectDropdown.selectedIndex].text;
     const message = document.getElementById('message').value;
 
-    // 2. Format the message text nicely (using markdown formatting like *bold*)
-    const formattedMessage = `New Contact Form Submission:\n\n` +
-                             `*Name:* ${firstName} ${lastName}\n` +
-                             `*Email:* ${email}\n` +
-                             `*Subject:* ${subjectText}\n\n` +
-                             `*Message:* ${message}`;
+    // Save the message to rm_store_messages. This is the only side effect
+    // of submitting the form now — no WhatsApp redirect.
+    const saveResult = await submitContactMessage({ firstName, lastName, email, subject: subjectText, message });
 
-    // 3. Define WhatsApp configurations 
-    // Replace '15551234567' with your actual WhatsApp phone number including country code (no + or spaces)
-    const phoneNumber = '15551234567'; 
-    const encodedText = encodeURIComponent(formattedMessage);
-    const whatsappUrl = `https://wa.me/${phoneNumber}?text=${encodedText}`;
+    if (!saveResult.success) {
+      btn.innerHTML = originalText;
+      btn.disabled = false;
+      if (typeof showToast === 'function') {
+        showToast('Could not send your message. Please try again.', 'error');
+      }
+      return;
+    }
+
+    btn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg> Sent!';
+    btn.style.background = 'var(--success)';
+
+    if (typeof showToast === 'function') {
+      showToast('Message sent, we will get back to you soon.', 'success');
+    }
+
+    e.target.reset();
 
     setTimeout(() => {
-      // Open WhatsApp in a new tab
-      window.open(whatsappUrl, '_blank');
-
-      btn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg> Redirected!';
-      btn.style.background = 'var(--success)';
-      
-      if (typeof showToast === 'function') {
-        showToast('Redirecting to WhatsApp...', 'success');
-      }
-      
-      e.target.reset();
-
-      setTimeout(() => {
-        btn.innerHTML = originalText;
-        btn.style.background = '';
-        btn.disabled = false;
-      }, 2000);
-    }, 1200);
+      btn.innerHTML = originalText;
+      btn.style.background = '';
+      btn.disabled = false;
+    }, 2000);
   }
 
   // Add spin animation

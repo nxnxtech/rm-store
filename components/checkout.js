@@ -1,4 +1,3 @@
-
 function initCheckoutModal() {
   if (document.querySelector('.checkout-modal-overlay')) return;
 
@@ -27,6 +26,8 @@ async function openCheckoutModal() {
     return;
   }
 
+  // Guests can check out too — orders are written with a null user_id,
+  // permitted by a dedicated RLS policy (see add_guest_checkout.sql).
   closeCartModal();
 
   const overlay = document.querySelector('.checkout-modal-overlay');
@@ -43,36 +44,65 @@ function closeCheckoutModal() {
   document.body.style.overflow = '';
 }
 
+// Calls the 'rm-store-create-checkout' Supabase Edge Function, which is the
+// single source of truth for prices: it looks up each product and the
+// region's shipping rate directly in the DB and returns what the customer
+// actually owes. The client never computes or trusts its own totals.
+async function calculateCheckout(region) {
+  const items = state.cart.map(item => ({ id: item.id, qty: item.qty, size: item.size }));
+
+  const { data, error } = await supabase.functions.invoke('rm-store-create-checkout', {
+    body: { items, region: region || null }
+  });
+
+  if (error) throw error;
+  if (data?.error) throw new Error(data.error);
+  if (!data?.items?.length) throw new Error('No valid items returned from checkout.');
+
+  return data; // { items, subtotal, shippingFee, total }
+}
+
 async function renderCheckoutForm() {
   const body = document.getElementById('checkout-modal-body');
   if (!body) return;
 
-  const data = await loadData();
+  body.innerHTML = createLoadingHtml('Loading, please wait...');
+
   const regions = await loadRegions();
-  if (!data) return;
 
-  let total = 0;
-  const cartItems = state.cart.map(item => {
-    const product = data.products.find(p => p.id === item.id);
-    if (!product) return null;
-    const unitPrice = getLineItemPrice(product, item.size);
-    const lineTotal = unitPrice * item.qty;
-    total += lineTotal;
-    return { product, qty: item.qty, size: item.size, unitPrice, lineTotal };
-  }).filter(Boolean);
+  const user = state.currentUser;
+  const customer = state.pendingOrder?.customer || {
+    name: user ? user.name : '',
+    email: user ? user.email : '',
+    phone: user ? (user.phone || '') : '',
+    address: user ? (user.address || '') : '',
+    region: user ? (user.region || '') : '',
+    city: user ? (user.city || '') : ''
+  };
 
-  const itemsHtml = cartItems.map(({ product, qty, size, lineTotal }) => `
+  let checkoutData;
+  try {
+    checkoutData = await calculateCheckout(customer.region);
+  } catch (error) {
+    console.error('Failed to calculate checkout total:', error);
+    body.innerHTML = `
+      <div class="empty-state">
+        <p>Unable to calculate your total right now. Please refresh and try again.</p>
+      </div>
+    `;
+    return;
+  }
+
+  const { items: cartItems, subtotal, shippingFee, total: grandTotal } = checkoutData;
+
+  const itemsHtml = cartItems.map(({ name, size, qty, lineTotal }) => `
     <div class="checkout-line-item">
-      <span>${product.name}${size ? ` <span class="checkout-line-size">(Size: ${size})</span>` : ''} <strong>x${qty}</strong></span>
+      <span>${name}${size ? ` <span class="checkout-line-size">(Size: ${size})</span>` : ''} <strong>x${qty}</strong></span>
       <span>${formatPrice(lineTotal)}</span>
     </div>
   `).join('');
 
-  const shippingFee = total > 900 ? 0 : 40;
-  const grandTotal = total + shippingFee;
-  const user = state.currentUser;
-
-  state.pendingOrder = { cartItems, total, shippingFee, grandTotal };
+  state.pendingOrder = { cartItems, subtotal, shippingFee, grandTotal, customer };
 
   const regionOptions = regions.map(r => `<option value="${r.region}">${r.region}</option>`).join('');
 
@@ -80,39 +110,45 @@ async function renderCheckoutForm() {
     <div class="checkout-summary">
       ${itemsHtml}
       <div class="checkout-line-item">
-        <span>Shipping</span>
-        <span>${shippingFee === 0 ? 'Free' : formatPrice(shippingFee)}</span>
+        <span>Delivery Fee</span>
+        <span id="checkout-shipping-amount">${shippingFee === 0 ? 'Free' : formatPrice(shippingFee)}</span>
       </div>
       <div class="checkout-line-item checkout-total-row">
         <span>Total</span>
-        <span>${formatPrice(grandTotal)}</span>
+        <span id="checkout-total-amount">${formatPrice(grandTotal)}</span>
       </div>
     </div>
 
     <form id="checkout-shipping-form">
       <h4 class="checkout-section-title">Delivery Details</h4>
+      ${!user ? `
+        <div class="checkout-guest-notice">
+          ${getIcon('user')} Making purchase as a guest.
+          <a href="${pagePath('signin.html')}">Sign in</a> to save your details and track this order later or continue below.
+        </div>
+      ` : ''}
       <div class="form-row">
         <div class="form-group">
           <label for="checkout-name">Full Name</label>
-          <input type="text" id="checkout-name" required placeholder="Jane Doe" value="${user ? user.name : ''}">
+          <input type="text" id="checkout-name" required placeholder="Roger McDaniels" value="${customer.name || ''}">
         </div>
         <div class="form-group">
           <label for="checkout-email">Email</label>
-          <input type="email" id="checkout-email" required placeholder="jane@example.com" value="${user ? user.email : ''}">
+          <input type="email" id="checkout-email" required placeholder="rm@example.com" value="${customer.email || ''}">
         </div>
       </div>
       <div class="form-group">
         <label for="checkout-phone">Phone Number</label>
-        <input type="tel" id="checkout-phone" required placeholder="024 123 4567">
+        <input type="tel" id="checkout-phone" required placeholder="02X XXX XXXX" value="${customer.phone || ''}">
       </div>
       <div class="form-group">
         <label for="checkout-address">Delivery Address</label>
-        <input type="text" id="checkout-address" required placeholder="House number, street name, area name">
+        <input type="text" id="checkout-address" required placeholder="House number, street name, area name" value="${customer.address || ''}">
       </div>
       <div class="form-row">
         <div class="form-group">
           <label for="checkout-region">Region</label>
-          <select id="checkout-region" required onchange="populateGhanaCities()">
+          <select id="checkout-region" required onchange="populateGhanaCities(); updateCheckoutShippingFee();">
             <option value="">Select region</option>
             ${regionOptions}
           </select>
@@ -132,7 +168,43 @@ async function renderCheckoutForm() {
     </form>
   `;
 
+  const regionSelect = document.getElementById('checkout-region');
+  const citySelect = document.getElementById('checkout-city');
+  if (customer.region) {
+    regionSelect.value = customer.region;
+    populateGhanaCities();
+    if (customer.city) {
+      citySelect.value = customer.city;
+    }
+  }
+
   document.getElementById('checkout-shipping-form').addEventListener('submit', handleShippingSubmit);
+}
+
+// Recalculates the delivery fee (and total) via the edge function the
+// instant the customer picks a different region, so the amount they end up
+// paying always reflects the DB's region-specific shipping rate.
+async function updateCheckoutShippingFee() {
+  if (!state.pendingOrder) return;
+  const regionSelect = document.getElementById('checkout-region');
+  const region = regionSelect ? regionSelect.value : '';
+
+  const shippingEl = document.getElementById('checkout-shipping-amount');
+  const totalEl = document.getElementById('checkout-total-amount');
+  if (shippingEl) shippingEl.textContent = 'Calculating…';
+
+  try {
+    const { subtotal, shippingFee, total: grandTotal } = await calculateCheckout(region);
+    state.pendingOrder.subtotal = subtotal;
+    state.pendingOrder.shippingFee = shippingFee;
+    state.pendingOrder.grandTotal = grandTotal;
+
+    if (shippingEl) shippingEl.textContent = shippingFee === 0 ? 'Free' : formatPrice(shippingFee);
+    if (totalEl) totalEl.textContent = formatPrice(grandTotal);
+  } catch (error) {
+    console.error('Failed to refresh shipping fee:', error);
+    showToast('Could not refresh delivery fee. Please try again.', 'error');
+  }
 }
 
 function populateGhanaCities() {
@@ -164,9 +236,24 @@ function handleShippingSubmit(e) {
   renderPaystackStep();
 }
 
-/* ============================================
-   PAYSTACK PAYMENT SIMULATION
-   ============================================ */
+let paystackScriptPromise = null;
+const PAYSTACK_PUBLIC_KEY = 'pk_test_2624a817184ae96a924acc39cca20a81c367caf1';
+
+function loadPaystackScript() {
+  if (window.PaystackPop) return Promise.resolve();
+  if (paystackScriptPromise) return paystackScriptPromise;
+
+  paystackScriptPromise = new Promise((resolve, reject) => {
+    const script = document.createElement('script');
+    script.src = 'https://js.paystack.co/v1/inline.js';
+    script.async = true;
+    script.onload = resolve;
+    script.onerror = () => reject(new Error('Failed to load Paystack script'));
+    document.body.appendChild(script);
+  });
+
+  return paystackScriptPromise;
+}
 
 function renderPaystackStep() {
   const body = document.getElementById('checkout-modal-body');
@@ -184,126 +271,398 @@ function renderPaystackStep() {
       <p class="paystack-amount">${formatPrice(grandTotal)}</p>
       <p class="paystack-email">${customer.email}</p>
 
-      <form id="paystack-card-form">
-        <div class="form-group">
-          <label for="paystack-card">Card Number</label>
-          <input type="text" id="paystack-card" required placeholder="4084 0840 8408 4081" maxlength="19" inputmode="numeric">
-        </div>
-        <div class="form-row">
-          <div class="form-group">
-            <label for="paystack-expiry">Expiry</label>
-            <input type="text" id="paystack-expiry" required placeholder="MM/YY" maxlength="5">
-          </div>
-          <div class="form-group">
-            <label for="paystack-cvv">CVV</label>
-            <input type="text" id="paystack-cvv" required placeholder="408" maxlength="4" inputmode="numeric">
-          </div>
-        </div>
-
+      <form id="paystack-payment-form">
+        <p class="paystack-summary-text">You will be redirected securely to Paystack to complete payment.</p>
         <button type="submit" class="btn btn-primary checkout-submit-btn paystack-pay-btn">
-          Pay ${formatPrice(grandTotal)}
+          Continue to Payment
         </button>
-        <button type="button" class="paystack-back-btn" onclick="renderCheckoutForm()">${getIcon('arrow-right')} Back to shipping</button>
-        <p class="checkout-disclaimer">Simulated Paystack checkout for demo purposes. No real payment is processed. Test card: 4084 0840 8408 4081</p>
+        <button type="button" class="btn btn-glass paystack-back-btn" onclick="renderCheckoutForm()">
+          ${getIcon('arrow-right')} Back to shipping
+        </button>
+        <p class="checkout-disclaimer">Paystack handles the payment securely. You may need to enter your OTP.</p>
       </form>
     </div>
   `;
 
-  document.getElementById('paystack-card-form').addEventListener('submit', handlePaystackCardSubmit);
+  document.getElementById('paystack-payment-form').addEventListener('submit', handlePaystackPaymentSubmit);
 }
 
-function handlePaystackCardSubmit(e) {
+async function initializePaystackPayment({ button = null, isRetry = false } = {}) {
+  if (!state.pendingOrder) return;
+
+  const btn = button || document.querySelector('.paystack-pay-btn');
+  if (btn) setButtonLoading(btn, isRetry ? 'Retrying payment...' : 'Please wait loading...');
+
+  try {
+    await loadPaystackScript();
+
+    const { grandTotal, customer } = state.pendingOrder;
+    const reference = `rm_${Date.now()}`;
+    state.pendingOrder.paymentReference = reference;
+
+    const handler = window.PaystackPop.setup({
+      key: PAYSTACK_PUBLIC_KEY,
+      email: customer.email,
+      amount: Math.round(grandTotal * 100),
+      currency: 'GHS',
+      ref: reference,
+      metadata: {
+        custom_fields: [
+          { display_name: 'Customer Name', variable_name: 'customer_name', value: customer.name },
+          { display_name: 'Order Type', variable_name: 'order_type', value: 'rm-store' }
+        ]
+      },
+      callback: function(response) {
+        handlePaystackSuccess(response.reference);
+      },
+      onClose: function() {
+        renderPaymentIncompleteState('Payment was cancelled before it could be completed.', 'You can retry from here and we will refresh the latest price first.');
+        if (btn) clearButtonLoading(btn);
+      }
+    });
+
+    handler.openIframe();
+  } catch (error) {
+    console.error('Paystack initialization failed:', error);
+    renderPaymentIncompleteState('We could not start the payment securely.', 'Please retry and we will refresh the latest price first.');
+    if (btn) clearButtonLoading(btn);
+  }
+}
+
+async function handlePaystackPaymentSubmit(e) {
   e.preventDefault();
   const btn = e.target.querySelector('.paystack-pay-btn');
-  btn.disabled = true;
-  btn.innerHTML = 'Authorizing...';
-
-  setTimeout(() => renderPaystackOtpStep(), 1100);
+  await initializePaystackPayment({ button: btn });
 }
 
-function renderPaystackOtpStep() {
+async function refreshPendingOrderPrices() {
+  if (!state.pendingOrder?.cartItems?.length) return { changed: false, grandTotal: 0 };
+
+  const previousGrandTotal = state.pendingOrder.grandTotal;
+
+  try {
+    const { items: cartItems, subtotal, shippingFee, total: grandTotal } =
+      await calculateCheckout(state.pendingOrder.customer.region);
+
+    const changed = Number(grandTotal.toFixed(2)) !== Number(previousGrandTotal.toFixed(2));
+
+    state.pendingOrder = {
+      ...state.pendingOrder,
+      cartItems,
+      subtotal,
+      shippingFee,
+      grandTotal
+    };
+
+    return { changed, grandTotal };
+  } catch (error) {
+    console.error('Failed to refresh prices from checkout function:', error);
+    return { changed: false, grandTotal: previousGrandTotal };
+  }
+}
+
+async function retryPendingPayment() {
+  if (!state.pendingOrder) return;
+
   const body = document.getElementById('checkout-modal-body');
-  if (!body) return;
 
-  body.innerHTML = `
-    <div class="paystack-panel">
-      <div class="paystack-header">
-        <div class="paystack-brand"><span>Pay</span>stack</div>
-        <span class="paystack-secure">${getIcon('shield-check')} Secure Payment</span>
-      </div>
-      <div class="paystack-otp-icon">${getIcon('credit-card')}</div>
-      <h4 class="paystack-otp-title">Enter OTP</h4>
-      <p class="paystack-otp-text">A one-time PIN has been sent to your registered phone number to authorize this payment.</p>
+  // If the payment already went through and only the database write failed,
+  // do NOT charge the customer again — just retry saving the order using
+  // the reference we already have from the successful charge.
+  if (state.pendingOrder.paymentConfirmed && state.pendingOrder.confirmedReference) {
+    if (body) {
+      body.innerHTML = createLoadingHtml('Saving your order...');
+    }
+    await submitOrderToDatabase(state.pendingOrder.confirmedReference);
+    return;
+  }
 
-      <form id="paystack-otp-form">
-        <div class="form-group">
-          <input type="text" id="paystack-otp" required placeholder="123456" maxlength="6" inputmode="numeric" class="paystack-otp-input">
-        </div>
-        <button type="submit" class="btn btn-primary checkout-submit-btn paystack-otp-btn">
-          Verify &amp; Pay
-        </button>
-        <p class="checkout-disclaimer">Demo mode — any code will be accepted.</p>
-      </form>
-    </div>
-  `;
+  // Otherwise the payment itself never completed (cancelled, declined, or
+  // Paystack failed to load) — retry the payment from scratch.
+  if (body) {
+    body.innerHTML = createLoadingHtml('Refreshing price and retrying payment...');
+  }
 
-  document.getElementById('paystack-otp-form').addEventListener('submit', handlePaystackOtpSubmit);
+  try {
+    const { changed } = await refreshPendingOrderPrices();
+    if (changed) {
+      showToast('Price updated. We are retrying your payment with the latest total.', 'success');
+    }
+    await initializePaystackPayment({ isRetry: true });
+  } catch (error) {
+    console.error('Retry payment failed:', error);
+    renderPaymentIncompleteState('We could not retry your payment.', 'Please try again in a moment.');
+  }
 }
 
-async function handlePaystackOtpSubmit(e) {
-  e.preventDefault();
-  const btn = e.target.querySelector('.paystack-otp-btn');
-  btn.disabled = true;
-  btn.innerHTML = 'Verifying...';
+async function handlePaystackSuccess(reference) {
+  // Mark the payment itself as confirmed right away. From this point on,
+  // any failure is a "saving the order" failure, not a "payment" failure —
+  // retries must never charge the customer again once this is set.
+  state.pendingOrder.paymentConfirmed = true;
+  state.pendingOrder.confirmedReference = reference;
 
-  const data = await loadData();
-  const { cartItems, grandTotal, customer } = state.pendingOrder;
+  const submitButton = document.querySelector('.paystack-pay-btn');
+  if (submitButton) setButtonLoading(submitButton, 'Please wait loading...');
 
-  const order = {
-    id: 'RM' + Date.now().toString().slice(-8),
-    reference: 'PSK' + Math.random().toString(36).slice(2, 12).toUpperCase(),
-    date: new Date().toISOString(),
-    status: 'Processing',
-    customer,
-    items: cartItems.map(({ product, qty, size, unitPrice }) => ({
-      id: product.id,
-      name: product.name,
-      image: product.image,
-      price: unitPrice,
+  await submitOrderToDatabase(reference);
+}
+
+async function submitOrderToDatabase(reference) {
+  const { cartItems, subtotal, shippingFee, grandTotal, customer } = state.pendingOrder;
+  const guestCheckout = !state.currentUser;
+
+  try {
+    const { data: orderRow, error: orderError } = await supabase
+      .from('rm_store_orders')
+      .insert({
+        user_id: guestCheckout ? null : state.currentUser.id,
+        status: 'Paid',
+        customer_name: customer.name,
+        customer_email: customer.email,
+        customer_phone: customer.phone,
+        customer_address: customer.address,
+        region: customer.region,
+        city: customer.city,
+        subtotal: subtotal,
+        shipping_fee: shippingFee,
+        delivery_fee: shippingFee,
+        total: grandTotal,
+        payment_reference: reference,
+        payment_method: 'Paystack'
+      })
+      .select()
+      .single();
+
+    if (orderError) throw orderError;
+
+    const orderItemsPayload = cartItems.map(({ dbId, name, image, qty, size, unitPrice }) => ({
+      order_id: orderRow.id,
+      product_id: dbId || null,
+      name,
+      image,
       size: size || null,
+      unit_price: unitPrice,
       qty
-    })),
-    total: grandTotal
-  };
+    }));
 
-  setTimeout(() => {
-    state.orders.unshift(order);
-    localStorage.setItem('Roger McDaniels_orders', JSON.stringify(state.orders));
+    const { error: itemsError } = await supabase
+      .from('rm_store_order_items')
+      .insert(orderItemsPayload);
 
-    state.cart = [];
-    localStorage.setItem('Roger McDaniels_cart', JSON.stringify(state.cart));
+    if (itemsError) throw itemsError;
+
+    if (guestCheckout) {
+      // Guest cart only ever lived in memory/localStorage — nothing to
+      // clean up in the DB.
+      state.cart = [];
+      saveCartToLocalStorage();
+    } else {
+      await supabase.from('rm_store_cart_items').delete().eq('user_id', state.currentUser.id);
+      state.cart = [];
+      saveCartToLocalStorage();
+    }
     updateCartBadge();
-    state.pendingOrder = null;
 
-    renderOrderConfirmation(order);
-  }, 1000);
+    const order = {
+      id: orderRow.order_number,
+      reference: orderRow.reference,
+      date: orderRow.created_at,
+      status: orderRow.status,
+      customer,
+      items: orderItemsPayload,
+      subtotal,
+      shippingFee,
+      total: grandTotal,
+      guestCheckout
+    };
+
+    state.pendingOrder = null;
+    closeCheckoutModal();
+    openReceiptModal(order);
+  } catch (error) {
+    console.error('Order failed to save:', error);
+    // Payment already succeeded — never re-charge from here. Only the
+    // database write needs retrying.
+    renderPaymentIncompleteState(
+      'Your payment went through, but we could not save your order.',
+      'No further charge will be made. Click retry to save your order with the payment you already made.'
+    );
+  }
 }
 
-function renderOrderConfirmation(order) {
+function renderPaymentIncompleteState(message = 'We could not complete your payment.', detail = 'You can retry with the latest price from the database.') {
   const body = document.getElementById('checkout-modal-body');
   if (!body) return;
 
   body.innerHTML = `
     <div class="checkout-confirmation">
-      ${getIcon('check')}
-      <h3>Payment Successful!</h3>
-      <p>Thanks, ${order.customer.name.split(' ')[0]}. Your order <strong>#${order.id}</strong> has been placed.</p>
-      <p class="checkout-confirmation-ref">Paystack Ref: ${order.reference}</p>
-      <p class="checkout-confirmation-total">${formatPrice(order.total)}</p>
+      <div class="checkout-status-badge checkout-status-badge-error">Payment incomplete</div>
+      <h3>Payment Incomplete</h3>
+      <p>${message}</p>
+      <p class="checkout-confirmation-ref">${detail}</p>
       <div class="checkout-confirmation-actions">
-        <a href="${pagePath('orders.html')}" class="btn btn-primary">View Order History</a>
-        <button class="btn btn-glass" onclick="closeCheckoutModal()">Continue Shopping</button>
+        <button class="btn btn-primary" onclick="retryPendingPayment()">Retry payment</button>
+        <button class="btn btn-glass" onclick="closeCheckoutModal()">Close</button>
       </div>
     </div>
   `;
+}
+
+/* ============================================
+   RECEIPT MODAL
+   Pops up right after a successful payment (guest
+   or signed-in) with the full itemized order detail,
+   and prompts the customer to screenshot or download
+   it since it won't be shown again for guests.
+   ============================================ */
+
+let lastReceiptOrder = null;
+
+function initReceiptModal() {
+  if (document.querySelector('.receipt-modal-overlay')) return;
+
+  const overlay = document.createElement('div');
+  overlay.className = 'receipt-modal-overlay';
+  overlay.innerHTML = `
+    <div class="receipt-modal">
+      <div class="receipt-modal-header">
+        <h3>${getIcon('check')} Order Receipt</h3>
+        <button class="receipt-modal-close" aria-label="Close receipt">${getIcon('close')}</button>
+      </div>
+      <div class="receipt-modal-body" id="receipt-modal-body"></div>
+    </div>
+  `;
+  document.body.appendChild(overlay);
+
+  overlay.querySelector('.receipt-modal-close').addEventListener('click', closeReceiptModal);
+  // Deliberately no click-outside-to-close — this is important information
+  // the customer needs to actually read/save, not dismiss by accident.
+}
+
+function openReceiptModal(order) {
+  initReceiptModal();
+  lastReceiptOrder = order;
+
+  const overlay = document.querySelector('.receipt-modal-overlay');
+  const body = document.getElementById('receipt-modal-body');
+  overlay.classList.add('active');
+  document.body.style.overflow = 'hidden';
+
+  const orderDate = new Date(order.date).toLocaleString('en-US', {
+    dateStyle: 'medium', timeStyle: 'short'
+  });
+
+  const itemsHtml = order.items.map(item => `
+    <div class="receipt-item-row">
+      <div class="receipt-item-info">
+        <span class="receipt-item-name">${item.name}${item.size ? ` <span class="receipt-item-size">(Size: ${item.size})</span>` : ''}</span>
+        <span class="receipt-item-qty">Qty ${item.qty} &times; ${formatPrice(item.unit_price)}</span>
+      </div>
+      <span class="receipt-item-total">${formatPrice(item.unit_price * item.qty)}</span>
+    </div>
+  `).join('');
+
+  body.innerHTML = `
+    <div class="receipt-save-notice">
+      ${getIcon('shield-check')}
+      <div>
+        <strong>Save this receipt now.</strong>
+        <p>Take a screenshot or use the download button below${order.guestCheckout ? " - as a guest, this order won't appear anywhere else on the site" : ''}.</p>
+      </div>
+    </div>
+
+    <div class="receipt-meta">
+      <div><span>Order #</span><strong>${order.id}</strong></div>
+      <div><span>Date</span><strong>${orderDate}</strong></div>
+      <div><span>Payment Ref</span><strong>${order.reference}</strong></div>
+      <div><span>Status</span><strong>${order.status}</strong></div>
+    </div>
+
+    <h4 class="checkout-section-title">Delivery To</h4>
+    <div class="receipt-customer">
+      <p>${order.customer.name}</p>
+      <p>${order.customer.email}</p>
+      <p>${order.customer.phone}</p>
+      <p>${order.customer.address}, ${order.customer.city}, ${order.customer.region}</p>
+    </div>
+
+    <h4 class="checkout-section-title">Items</h4>
+    <div class="receipt-items">
+      ${itemsHtml}
+    </div>
+
+    <div class="receipt-totals">
+      <div class="receipt-line-item"><span>Subtotal</span><span>${formatPrice(order.subtotal)}</span></div>
+      <div class="receipt-line-item"><span>Delivery Fee</span><span>${order.shippingFee === 0 ? 'Free' : formatPrice(order.shippingFee)}</span></div>
+      <div class="receipt-line-item receipt-total-row"><span>Total Paid</span><span>${formatPrice(order.total)}</span></div>
+    </div>
+
+    <div class="receipt-actions">
+      <button class="btn btn-primary" onclick="downloadReceipt()">${getIcon('arrow-right')} Download Receipt</button>
+      ${order.guestCheckout
+        ? `<a href="${pagePath('signup.html')}" class="btn btn-glass">Create Account</a>`
+        : `<a href="${pagePath('orders.html')}" class="btn btn-glass">View Order History</a>`
+      }
+    </div>
+    <button class="btn btn-glass receipt-done-btn" onclick="closeReceiptModal()">Done, Continue Shopping</button>
+  `;
+}
+
+function closeReceiptModal() {
+  const overlay = document.querySelector('.receipt-modal-overlay');
+  if (!overlay) return;
+  overlay.classList.remove('active');
+  document.body.style.overflow = '';
+}
+
+function buildReceiptText(order) {
+  const orderDate = new Date(order.date).toLocaleString('en-US', {
+    dateStyle: 'medium', timeStyle: 'short'
+  });
+
+  const lines = [
+    'ROGER MCDANIELS — ORDER RECEIPT',
+    '================================',
+    `Order #: ${order.id}`,
+    `Date: ${orderDate}`,
+    `Payment Ref: ${order.reference}`,
+    `Status: ${order.status}`,
+    '',
+    'Delivery To:',
+    order.customer.name,
+    order.customer.email,
+    order.customer.phone,
+    `${order.customer.address}, ${order.customer.city}, ${order.customer.region}`,
+    '',
+    'Items:',
+    ...order.items.map(item =>
+      `  ${item.name}${item.size ? ` (Size: ${item.size})` : ''} — Qty ${item.qty} x ${formatPrice(item.unit_price)} = ${formatPrice(item.unit_price * item.qty)}`
+    ),
+    '',
+    `Subtotal: ${formatPrice(order.subtotal)}`,
+    `Delivery Fee: ${order.shippingFee === 0 ? 'Free' : formatPrice(order.shippingFee)}`,
+    `Total Paid: ${formatPrice(order.total)}`,
+    '',
+    'Thank you for shopping with Roger McDaniels.'
+  ];
+
+  return lines.join('\n');
+}
+
+function downloadReceipt() {
+  if (!lastReceiptOrder) return;
+  const text = buildReceiptText(lastReceiptOrder);
+  const blob = new Blob([text], { type: 'text/plain' });
+  const url = URL.createObjectURL(blob);
+
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = `receipt-${lastReceiptOrder.id}.txt`;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
+
+  showToast('Receipt downloaded', 'success');
 }

@@ -1,3 +1,86 @@
+/* ============================================
+   DB-BACKED CART
+   Signed-in users: cart lives in rm_store_cart_items
+   and is the source of truth (loaded on page load).
+   Guests: cart stays in localStorage as before, and
+   is merged into the DB the next time they sign in.
+   ============================================ */
+
+async function loadCartFromDb() {
+  if (!state.currentUser) return; // guest — keep the localStorage cart as-is
+
+  // Merge any items added while browsing as a guest into the DB cart first
+  // (only relevant if cookies were accepted, since that's the only way a
+  // guest cart could have been persisted to localStorage).
+  if (hasCookieConsent()) {
+    const guestCart = JSON.parse(localStorage.getItem('Roger McDaniels_cart')) || [];
+    for (const item of guestCart) {
+      await upsertCartItemInDb(item.id, item.qty, item.size);
+    }
+    localStorage.removeItem('Roger McDaniels_cart');
+  }
+
+  const { data, error } = await supabase
+    .from('rm_store_cart_items')
+    .select('product_id, size, qty, rm_store_products(slug)')
+    .eq('user_id', state.currentUser.id);
+
+  if (error) {
+    console.error('Failed to load cart from Supabase:', error);
+    return;
+  }
+
+  state.cart = (data || []).map(row => ({
+    id: row.rm_store_products?.slug || row.product_id,
+    dbId: row.product_id,
+    qty: row.qty,
+    size: row.size
+  }));
+
+  saveCartToLocalStorage();
+  updateCartBadge();
+}
+
+async function resolveProductDbId(productId) {
+  // productId may already be the products.dbId (uuid) or the slug ('p1').
+  const cached = state.data?.products?.find(p => p.id === productId);
+  if (cached?.dbId) return cached.dbId;
+
+  const { data } = await supabase
+    .from('rm_store_products')
+    .select('id')
+    .or(`slug.eq.${productId},id.eq.${productId}`)
+    .maybeSingle();
+
+  return data?.id || null;
+}
+
+async function upsertCartItemInDb(productId, qty, size) {
+  if (!state.currentUser) return;
+  const dbId = await resolveProductDbId(productId);
+  if (!dbId) return;
+
+  await supabase.from('rm_store_cart_items').upsert({
+    user_id: state.currentUser.id,
+    product_id: dbId,
+    size: size || null,
+    qty
+  }, { onConflict: 'user_id,product_id,size' });
+}
+
+async function deleteCartItemInDb(productId, size) {
+  if (!state.currentUser) return;
+  const dbId = await resolveProductDbId(productId);
+  if (!dbId) return;
+
+  await supabase
+    .from('rm_store_cart_items')
+    .delete()
+    .eq('user_id', state.currentUser.id)
+    .eq('product_id', dbId)
+    .eq('size', size || null);
+}
+
 function initCartBadge() {
   updateCartBadge();
 }
@@ -15,6 +98,11 @@ function findCartItem(productId, size) {
   return state.cart.find(item => item.id === productId && item.size === (size || null));
 }
 
+function saveCartToLocalStorage() {
+  if (!hasCookieConsent()) return; // no consent — cart stays in-memory only
+  localStorage.setItem('Roger McDaniels_cart', JSON.stringify(state.cart));
+}
+
 function addToCart(productId, qty = 1, size = null, message) {
   const existing = findCartItem(productId, size);
 
@@ -24,7 +112,12 @@ function addToCart(productId, qty = 1, size = null, message) {
     state.cart.push({ id: productId, qty, size: size || null });
   }
 
-  localStorage.setItem('Roger McDaniels_cart', JSON.stringify(state.cart));
+  if (state.currentUser) {
+    const finalQty = existing ? existing.qty : qty;
+    upsertCartItemInDb(productId, finalQty, size);
+  }
+
+  saveCartToLocalStorage();
   updateCartBadge();
   showToast(message || 'Added to cart!', 'success');
   renderCartModal();
@@ -99,8 +192,23 @@ async function renderCartModal() {
     return;
   }
 
+  body.innerHTML = `
+    <div class="loading-state">
+      <div class="spinner"></div>
+      <p>Loading...</p>
+    </div>
+  `;
+  footer.innerHTML = '';
+
   const data = await loadData();
-  if (!data) return;
+  if (!data) {
+    body.innerHTML = `
+      <div class="cart-empty">
+        <p>Unable to load cart items. Please try again.</p>
+      </div>
+    `;
+    return;
+  }
 
   let total = 0;
   const rows = state.cart.map(item => {
@@ -144,17 +252,28 @@ function changeCartQty(productId, size, delta) {
   const item = findCartItem(productId, size || null);
   if (!item) return;
   item.qty += delta;
-  if (item.qty <= 0) {
+  const removed = item.qty <= 0;
+  if (removed) {
     state.cart = state.cart.filter(i => i !== item);
   }
-  localStorage.setItem('Roger McDaniels_cart', JSON.stringify(state.cart));
+
+  if (state.currentUser) {
+    removed ? deleteCartItemInDb(productId, size) : upsertCartItemInDb(productId, item.qty, size);
+  }
+
+  saveCartToLocalStorage();
   updateCartBadge();
   renderCartModal();
 }
 
 function removeFromCart(productId, size) {
   state.cart = state.cart.filter(i => !(i.id === productId && i.size === (size || null)));
-  localStorage.setItem('Roger McDaniels_cart', JSON.stringify(state.cart));
+
+  if (state.currentUser) {
+    deleteCartItemInDb(productId, size);
+  }
+
+  saveCartToLocalStorage();
   updateCartBadge();
   renderCartModal();
   showToast('Item removed from cart', 'success');

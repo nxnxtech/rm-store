@@ -218,14 +218,17 @@
 <!-- Footer -->
 <div id="footer-placeholder"></div>
 
-<script src="js/main.js"></script>
-<script src="components/header.js"></script>
-<script src="components/footer.js"></script>
-<script src="components/cart.js"></script>
-<script src="components/checkout.js"></script>
-<script src="components/comment.js"></script>
-<script src="components/scroll-hint.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script defer src="js/supabase-client.js"></script>
+<script defer src="js/main.js"></script>
+<script defer src="components/header.js"></script>
+<script defer src="components/footer.js"></script>
+<script defer src="components/cart.js"></script>
+<script defer src="components/checkout.js"></script>
+<script defer src="components/comment.js"></script>
+<script defer src="components/scroll-hint.js"></script>
 <script>
+  document.addEventListener('DOMContentLoaded', () => {
   // Load and render new arrivals
   loadData().then(data => {
     if (!data) return;
@@ -288,6 +291,7 @@
     initWishlistButtons();
     initColorDots();
     initScrollAnimations();
+  });
   });
 </script>
 </body>

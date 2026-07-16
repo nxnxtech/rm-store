@@ -99,6 +99,7 @@
       display: flex;
       gap: 24px;
       overflow-x: auto;
+      overflow-y: hidden;
       padding-bottom: 16px;
       scroll-behavior: smooth;
       -webkit-overflow-scrolling: touch;
@@ -162,6 +163,10 @@
   <div class="active-filters" id="active-filters"></div>
 
   <div id="shop-grid-container">
+      <div class="loading-state" style="width:100%;">
+        <div class="spinner"></div>
+        <p>Loading...</p>
+      </div>
     </div>
 </section>
 
@@ -169,19 +174,22 @@
 
 <div id="footer-placeholder"></div>
 
-<script src="../js/main.js"></script>
-<script src="../components/header.js"></script>
-<script src="../components/footer.js"></script>
-<script src="../components/cart.js"></script>
-<script src="../components/checkout.js"></script>
-<script src="../components/comment.js"></script>
-<script src="../components/scroll-hint.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script defer src="../js/supabase-client.js"></script>
+<script defer src="../js/main.js"></script>
+<script defer src="../components/header.js"></script>
+<script defer src="../components/footer.js"></script>
+<script defer src="../components/cart.js"></script>
+<script defer src="../components/checkout.js"></script>
+<script defer src="../components/comment.js"></script>
+<script defer src="../components/scroll-hint.js"></script>
 <script>
   let allProducts = [];
   let currentCategory = 'all';
   let currentCollection = null;
   let currentCollectionName = '';
 
+  document.addEventListener('DOMContentLoaded', () => {
   loadData().then(data => {
     if (!data) return;
     allProducts = data.products;
@@ -206,6 +214,7 @@
     }
 
     applyFilters();
+  });
   });
 
   function applyFilters() {

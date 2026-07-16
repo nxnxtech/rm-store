@@ -1,12 +1,22 @@
+const COOKIE_CONSENT_KEY = 'Roger McDaniels_cookie_consent'; // 'accepted' | 'declined'
+
+function hasCookieConsent() {
+  return localStorage.getItem(COOKIE_CONSENT_KEY) === 'accepted';
+}
+
 // Global state
 const state = {
-  cart: JSON.parse(localStorage.getItem('Roger McDaniels_cart')) || [],
-  wishlist: JSON.parse(localStorage.getItem('Roger McDaniels_wishlist')) || [],
+  // Guest cart fallback only — signed-in users' carts are loaded from
+  // rm_store_cart_items by loadCartFromDb() on page load (see cart.js).
+  // Only rehydrated from localStorage if the visitor has accepted cookies.
+  cart: hasCookieConsent() ? (JSON.parse(localStorage.getItem('Roger McDaniels_cart')) || []) : [],
+  wishlist: hasCookieConsent() ? (JSON.parse(localStorage.getItem('Roger McDaniels_wishlist')) || []) : [],
+  // Rehydrated properly by initAuthSession() on page load; this is just
+  // a fast first paint before that resolves.
   currentUser: JSON.parse(localStorage.getItem('Roger McDaniels_user')) || null,
-  orders: JSON.parse(localStorage.getItem('Roger McDaniels_orders')) || [],
   data: null,
-  usersData: null,
   regionsData: null,
+  shippingRatesData: null,
   pendingOrder: null
 };
 
@@ -26,9 +36,9 @@ function assetPath(path) {
 }
 
 // DOM Ready
-document.addEventListener('DOMContentLoaded', async () => {
-  if (typeof loadHeaderComponent === 'function') await loadHeaderComponent();
-  if (typeof loadFooterComponent === 'function') await loadFooterComponent();
+document.addEventListener('DOMContentLoaded', () => {
+  if (typeof loadHeaderComponent === 'function') loadHeaderComponent();
+  if (typeof loadFooterComponent === 'function') loadFooterComponent();
 
   initScrollAnimations();
   initWishlistButtons();
@@ -36,156 +46,220 @@ document.addEventListener('DOMContentLoaded', async () => {
   initToastContainer();
   initCheckoutModal();
   initCommentsSection();
+  initCookieConsent();
+
+  const bootApp = async () => {
+    try {
+      if (typeof initAuthSession === 'function') await initAuthSession();
+      if (typeof loadCartFromDb === 'function') await loadCartFromDb();
+    } catch (error) {
+      console.error('Failed to finish background startup tasks:', error);
+    }
+  };
+
+  // Other pages (e.g. contact.html) can `await state.authReady` to know
+  // when state.currentUser has been fully resolved before prefilling
+  // anything from it.
+  state.authReady = bootApp();
 });
 
-async function loadData() {
-  if (state.data) return state.data;
+/* ============================================
+   DATA LOADING — Supabase
+   Replaces the old fetch('js/*.json') calls. All
+   reads go through the anon key + RLS (see
+   rm_store_schema.sql — catalog tables are public-read).
+   ============================================ */
 
-  // Determine correct path based on current page location
-  const isInPagesFolder = window.location.pathname.includes('/pages/');
-  const dataPath = isInPagesFolder ? '../js/data.json' : 'js/data.json';
-  const productsPath = isInPagesFolder ? '../js/products.json' : 'js/products.json';
+// Maps an rm_store_products row onto the shape the rest of the
+// frontend already expects (product.category, product.sizePrices,
+// product.reviews, etc.) so renderProductCard/cart/checkout/etc.
+// don't need to change.
+function mapProductRow(row) {
+  return {
+    id: row.slug || row.id,
+    dbId: row.id,
+    name: row.name,
+    description: row.description,
+    price: Number(row.price),
+    category: row.category_id,
+    collection: row.collection_id,
+    is_new: row.is_new,
+    is_preorder: row.is_preorder,
+    image: row.image,
+    images: row.images || [],
+    colors: row.colors || [],
+    sizes: row.sizes || [],
+    sizePrices: row.size_prices || {},
+    stock: row.stock_quantity,
+    rating: Number(row.rating) || 0,
+    reviews: row.reviews_count || 0
+  };
+}
+
+async function loadData(forceRefresh = false) {
+  if (state.data && !forceRefresh) return state.data;
 
   try {
-    const response = await fetch(dataPath);
-    state.data = await response.json();
+    const [
+      { data: products, error: productsErr },
+      { data: collections, error: collectionsErr },
+      { data: faq, error: faqErr },
+      { data: settingsRows, error: settingsErr },
+      { data: instagramRows, error: instagramErr }
+    ] = await Promise.all([
+      supabase.from('rm_store_products').select('*').eq('is_active', true),
+      supabase.from('rm_store_collections').select('*').order('sort_order'),
+      supabase.from('rm_store_faq').select('*').order('sort_order'),
+      supabase.from('rm_store_site_settings').select('*'),
+      supabase.from('rm_store_instagram_posts').select('*').order('sort_order')
+    ]);
+
+    if (productsErr) throw productsErr;
+    if (collectionsErr) throw collectionsErr;
+    if (faqErr) throw faqErr;
+    if (settingsErr) throw settingsErr;
+    if (instagramErr) throw instagramErr;
+
+    const mappedProducts = (products || []).map(mapProductRow);
+
+    const settings = {};
+    (settingsRows || []).forEach(row => { settings[row.key] = row.value; });
+
+    state.data = {
+      site: settings.site || {},
+      contact: settings.contact || {},
+      instagram_url: settings.instagram_url || '',
+      instagram_posts: (instagramRows || []).map(r => r.url),
+      faq: faq || [],
+      products: mappedProducts,
+      collections: (collections || []).map(c => ({
+        ...c,
+        product_count: mappedProducts.filter(p => p.collection === c.id).length
+      }))
+    };
+
+    return state.data;
   } catch (error) {
-    console.error('Failed to load data:', error);
-    try {
-      const fallbackPath = isInPagesFolder ? 'js/data.json' : '../js/data.json';
-      const response2 = await fetch(fallbackPath);
-      state.data = await response2.json();
-    } catch (e2) {
-      console.error('Fallback also failed:', e2);
-      return null;
-    }
+    console.error('Failed to load data from Supabase:', error);
+    return null;
   }
-
-  try {
-    const productsResponse = await fetch(productsPath);
-    const productsJson = await productsResponse.json();
-    state.data.products = productsJson.products || [];
-  } catch (error) {
-    console.error('Failed to load products.json:', error);
-    state.data.products = state.data.products || [];
-  }
-
-  if (Array.isArray(state.data.collections)) {
-    state.data.collections = state.data.collections.map(c => ({
-      ...c,
-      product_count: state.data.products.filter(p => p.collection === c.id).length
-    }));
-  }
-
-  return state.data;
 }
 
 async function loadComments() {
-  const isInPagesFolder = window.location.pathname.includes('/pages/');
-  const path = isInPagesFolder ? '../js/comments.json' : 'js/comments.json';
+  const { data, error } = await supabase
+    .from('rm_store_comments')
+    .select('*')
+    .eq('is_approved', true)
+    .order('created_at', { ascending: false });
 
-  try {
-    const response = await fetch(path);
-    const json = await response.json();
-    return json.comments || [];
-  } catch (error) {
-    console.error('Failed to load comments.json:', error);
+  if (error) {
+    console.error('Failed to load comments:', error);
     return [];
   }
-}
 
-async function loadUsers() {
-  if (state.usersData) return state.usersData;
-  const isInPagesFolder = window.location.pathname.includes('/pages/');
-  const path = isInPagesFolder ? '../js/users.json' : 'js/users.json';
-
-  try {
-    const response = await fetch(path);
-    const json = await response.json();
-    state.usersData = json.users || [];
-    return state.usersData;
-  } catch (error) {
-    console.error('Failed to load users.json:', error);
-    return [];
-  }
-}
-
-/* ============================================
-   AUTH (demo only — backed by users.json + localStorage)
-   ============================================ */
-
-function getRegisteredUsers() {
-  return JSON.parse(localStorage.getItem('Roger McDaniels_registered_users')) || [];
-}
-
-function saveRegisteredUsers(users) {
-  localStorage.setItem('Roger McDaniels_registered_users', JSON.stringify(users));
-}
-
-function getUserOverrides() {
-  return JSON.parse(localStorage.getItem('Roger McDaniels_user_overrides')) || {};
-}
-
-function saveUserOverride(email, fields) {
-  const overrides = getUserOverrides();
-  const key = email.toLowerCase();
-  overrides[key] = { ...(overrides[key] || {}), ...fields };
-  localStorage.setItem('Roger McDaniels_user_overrides', JSON.stringify(overrides));
-}
-
-async function getAllUsers() {
-  const seedUsers = await loadUsers();
-  const registered = getRegisteredUsers();
-  const overrides = getUserOverrides();
-
-  return [...seedUsers, ...registered].map(u => ({
-    ...u,
-    ...(overrides[u.email.toLowerCase()] || {})
+  return (data || []).map(c => ({
+    name: c.name,
+    avatar: c.avatar,
+    rating: c.rating,
+    message: c.message,
+    date: c.created_at
   }));
 }
 
-async function signUp({ name, email, password }) {
-  const allUsers = await getAllUsers();
-  if (allUsers.some(u => u.email.toLowerCase() === email.toLowerCase())) {
-    return { success: false, message: 'An account with this email already exists.' };
+// Saves a contact form submission to rm_store_messages. Works for both
+// guests (user_id null) and signed-in users, matching the guest-checkout
+// pattern used elsewhere on the site.
+async function submitContactMessage({ firstName, lastName, email, subject, message }) {
+  const { error } = await supabase.from('rm_store_messages').insert({
+    user_id: state.currentUser ? state.currentUser.id : null,
+    first_name: firstName,
+    last_name: lastName,
+    email,
+    subject,
+    message
+  });
+
+  if (error) {
+    console.error('Failed to save contact message:', error);
+    return { success: false, message: error.message };
   }
 
-  const newUser = {
-    id: 'u' + Date.now(),
-    name,
+  return { success: true };
+}
+
+/* ============================================
+   AUTH — Supabase Auth
+   Profile fields (name, avatar, phone) live in
+   rm_store_users, which is auto-created by a
+   trigger when a new auth user signs up.
+   ============================================ */
+
+async function loadCurrentUserProfile(authUser) {
+  if (!authUser) return null;
+
+  const { data, error } = await supabase
+    .from('rm_store_users')
+    .select('*')
+    .eq('id', authUser.id)
+    .single();
+
+  if (error) {
+    console.error('Failed to load user profile:', error);
+    return { id: authUser.id, name: authUser.email, email: authUser.email };
+  }
+
+  return data;
+}
+
+async function signUp({ name, email, password, phone, address, region, city }) {
+  const { data, error } = await supabase.auth.signUp({
     email,
     password,
-    avatar: '',
-    joined: new Date().toISOString().slice(0, 10)
-  };
+    options: { data: { name } } // consumed by rm_store_handle_new_user() trigger
+  });
 
-  const registered = getRegisteredUsers();
-  registered.push(newUser);
-  saveRegisteredUsers(registered);
+  if (error) {
+    return { success: false, message: error.message };
+  }
 
-  setCurrentUser(newUser);
-  return { success: true, user: newUser };
+  // The rm_store_handle_new_user() trigger only has access to the name via
+  // auth metadata, so the delivery details collected at signup are saved
+  // here as a follow-up update once the profile row exists.
+  if (data.user && (phone || address || region || city)) {
+    const { error: profileUpdateError } = await supabase
+      .from('rm_store_users')
+      .update({ phone, address, region, city })
+      .eq('id', data.user.id);
+
+    if (profileUpdateError) {
+      console.error('Failed to save delivery details:', profileUpdateError);
+    }
+  }
+
+  const profile = await loadCurrentUserProfile(data.user);
+  setCurrentUser(profile);
+  return { success: true, user: profile };
 }
 
 async function signIn({ email, password }) {
-  const allUsers = await getAllUsers();
-  const user = allUsers.find(u => u.email.toLowerCase() === email.toLowerCase() && u.password === password);
+  const { data, error } = await supabase.auth.signInWithPassword({ email, password });
 
-  if (!user) {
+  if (error) {
     return { success: false, message: 'Incorrect email or password.' };
   }
 
-  setCurrentUser(user);
-  return { success: true, user };
+  const profile = await loadCurrentUserProfile(data.user);
+  setCurrentUser(profile);
+  return { success: true, user: profile };
 }
 
 function setCurrentUser(user) {
-  const { password, ...safeUser } = user;
-  state.currentUser = safeUser;
-  localStorage.setItem('Roger McDaniels_user', JSON.stringify(safeUser));
+  state.currentUser = user;
+  localStorage.setItem('Roger McDaniels_user', JSON.stringify(user));
 }
 
-function signOut() {
+async function signOut() {
+  await supabase.auth.signOut();
   state.currentUser = null;
   localStorage.removeItem('Roger McDaniels_user');
   showToast('Signed out successfully', 'success');
@@ -201,14 +275,21 @@ function requireAuth() {
   return true;
 }
 
-async function updateProfileName(newName) {
+async function updateUserProfile(updates) {
   if (!state.currentUser) return { success: false, message: 'Not signed in.' };
-  if (!newName || !newName.trim()) return { success: false, message: 'Name cannot be empty.' };
+  if (updates.name !== undefined && !updates.name.trim()) {
+    return { success: false, message: 'Name cannot be empty.' };
+  }
 
-  saveUserOverride(state.currentUser.email, { name: newName.trim() });
-  state.currentUser.name = newName.trim();
+  const { error } = await supabase
+    .from('rm_store_users')
+    .update(updates)
+    .eq('id', state.currentUser.id);
+
+  if (error) return { success: false, message: error.message };
+
+  Object.assign(state.currentUser, updates);
   localStorage.setItem('Roger McDaniels_user', JSON.stringify(state.currentUser));
-
   return { success: true };
 }
 
@@ -218,31 +299,216 @@ async function changePassword(currentPassword, newPassword) {
     return { success: false, message: 'New password must be at least 6 characters.' };
   }
 
-  const allUsers = await getAllUsers();
-  const user = allUsers.find(u => u.email.toLowerCase() === state.currentUser.email.toLowerCase());
-
-  if (!user || user.password !== currentPassword) {
+  // Supabase has no "check password" endpoint, so re-authenticate with the
+  // current password first to confirm it before changing anything.
+  const { error: reauthError } = await supabase.auth.signInWithPassword({
+    email: state.currentUser.email,
+    password: currentPassword
+  });
+  if (reauthError) {
     return { success: false, message: 'Current password is incorrect.' };
   }
 
-  saveUserOverride(state.currentUser.email, { password: newPassword });
+  const { error } = await supabase.auth.updateUser({ password: newPassword });
+  if (error) return { success: false, message: error.message };
+
   return { success: true };
+}
+
+// Restore session on page load (e.g. after a refresh)
+async function initAuthSession() {
+  const { data: { session } } = await supabase.auth.getSession();
+  if (session?.user) {
+    const profile = await loadCurrentUserProfile(session.user);
+    setCurrentUser(profile);
+  } else {
+    state.currentUser = null;
+    localStorage.removeItem('Roger McDaniels_user');
+  }
+}
+
+supabase.auth.onAuthStateChange(async (_event, session) => {
+  if (session?.user) {
+    const profile = await loadCurrentUserProfile(session.user);
+    setCurrentUser(profile);
+  } else {
+    state.currentUser = null;
+    localStorage.removeItem('Roger McDaniels_user');
+  }
+});
+
+async function loadOrders() {
+  if (!state.currentUser) return [];
+
+  const { data, error } = await supabase
+    .from('rm_store_orders')
+    .select('*, rm_store_order_items(*)')
+    .eq('user_id', state.currentUser.id)
+    .order('created_at', { ascending: false });
+
+  if (error) {
+    console.error('Failed to load orders:', error);
+    return [];
+  }
+
+  return (data || []).map(o => ({
+    id: o.order_number,
+    reference: o.reference,
+    date: o.created_at,
+    status: o.status,
+    total: Number(o.total),
+    // deliveryFee: new column, so older rows may not have it set yet.
+    deliveryFee: o.delivery_fee != null ? Number(o.delivery_fee) : null,
+    // deliveryStatus: separate from the order's payment/processing `status`
+    // above — tracks where the parcel physically is. Defaults to
+    // 'Processing' for rows created before this column existed.
+    deliveryStatus: o.delivery_status || 'Processing',
+    customer: {
+      name: o.customer_name,
+      email: o.customer_email,
+      phone: o.customer_phone,
+      address: o.customer_address,
+      region: o.region,
+      city: o.city
+    },
+    items: (o.rm_store_order_items || []).map(i => ({
+      id: i.product_id,
+      name: i.name,
+      image: i.image,
+      size: i.size,
+      price: Number(i.unit_price),
+      qty: i.qty
+    }))
+  }));
 }
 
 async function loadRegions() {
   if (state.regionsData) return state.regionsData;
-  const isInPagesFolder = window.location.pathname.includes('/pages/');
-  const path = isInPagesFolder ? '../js/ghana-regions.json' : 'js/ghana-regions.json';
 
-  try {
-    const response = await fetch(path);
-    const json = await response.json();
-    state.regionsData = json.regions || [];
-    return state.regionsData;
-  } catch (error) {
-    console.error('Failed to load ghana-regions.json:', error);
+  const { data, error } = await supabase
+    .from('rm_store_regions')
+    .select('*')
+    .order('region');
+
+  if (error) {
+    console.error('Failed to load regions:', error);
     return [];
   }
+
+  state.regionsData = data || [];
+  return state.regionsData;
+}
+
+async function loadShippingRates() {
+  if (state.shippingRatesData) return state.shippingRatesData;
+
+  const { data, error } = await supabase
+    .from('rm_store_shipping_rates')
+    .select('*');
+
+  if (error) {
+    console.error('Failed to load shipping rates:', error);
+    return [];
+  }
+
+  state.shippingRatesData = data || [];
+  return state.shippingRatesData;
+}
+
+// Free shipping over GH₵900, otherwise the region's rate from the database
+// (falls back to GH₵40 if a region has no rate configured yet).
+function getShippingFee(region, total) {
+  if (total > 900) return 0;
+  const rate = (state.shippingRatesData || []).find(r => r.region === region);
+  return rate ? Number(rate.fee) : 40;
+}
+
+/* ============================================
+   COOKIE CONSENT BANNER
+   ============================================ */
+
+function isIndexPage() {
+  const file = window.location.pathname.split('/').pop();
+  return file === '' || file === 'index.html';
+}
+
+function initCookieConsent() {
+  const consent = localStorage.getItem(COOKIE_CONSENT_KEY);
+
+  // Already accepted — nothing to do, ever.
+  if (consent === 'accepted') return;
+
+  // Not accepted yet (either never decided, or previously declined).
+  // On the index page we re-ask on every refresh; on other pages we only
+  // ask if no decision has been made yet at all.
+  if (consent === 'declined' && !isIndexPage()) return;
+
+  renderCookieBanner();
+}
+
+function renderCookieBanner() {
+  if (document.querySelector('.cookie-consent-banner')) return;
+
+  const banner = document.createElement('div');
+  banner.className = 'cookie-consent-banner';
+  banner.innerHTML = `
+    <div class="cookie-consent-inner">
+      <div class="cookie-consent-text">
+        <h4>${getIcon('shield-check')} We use cookies</h4>
+        <p>This site uses cookies to keep things like your cart and wishlist saved between visits, and to keep you signed in. You can accept or refuse.</p>
+        <button type="button" class="cookie-consent-learn-more" id="cookie-learn-more-btn">What are cookies used for?</button>
+        <div class="cookie-consent-details" id="cookie-consent-details" style="display:none;">
+          <ul>
+            <li><strong>Essential:</strong> keep you signed in and remember your session.</li>
+            <li><strong>Preference:</strong> remember your cart and wishlist items between page refreshes.</li>
+          </ul>
+        </div>
+        <div class="cookie-consent-warning" id="cookie-consent-warning" style="display:none;">
+          If you refuse, your cart and wishlist items will not be saved, anything you add will disappear every time the page is refreshed.
+        </div>
+      </div>
+      <div class="cookie-consent-actions">
+        <button type="button" class="btn btn-glass" id="cookie-decline-btn">Refuse</button>
+        <button type="button" class="btn btn-primary" id="cookie-accept-btn">Accept</button>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(banner);
+
+  document.getElementById('cookie-learn-more-btn').addEventListener('click', () => {
+    const details = document.getElementById('cookie-consent-details');
+    details.style.display = details.style.display === 'none' ? 'block' : 'none';
+  });
+
+  document.getElementById('cookie-accept-btn').addEventListener('click', () => {
+    localStorage.setItem(COOKIE_CONSENT_KEY, 'accepted');
+    // Persist whatever is currently in memory now that consent is granted.
+    saveCartToLocalStorage();
+    if (hasCookieConsent()) {
+      localStorage.setItem('Roger McDaniels_wishlist', JSON.stringify(state.wishlist));
+    }
+    dismissCookieBanner();
+  });
+
+  document.getElementById('cookie-decline-btn').addEventListener('click', (e) => {
+    const warning = document.getElementById('cookie-consent-warning');
+    if (warning.style.display === 'none') {
+      // First click: show the warning, give them a chance to reconsider.
+      warning.style.display = 'block';
+      e.target.textContent = 'Refuse anyway';
+      return;
+    }
+    // Second click: confirmed refusal.
+    localStorage.setItem(COOKIE_CONSENT_KEY, 'declined');
+    localStorage.removeItem('Roger McDaniels_cart');
+    localStorage.removeItem('Roger McDaniels_wishlist');
+    dismissCookieBanner();
+  });
+}
+
+function dismissCookieBanner() {
+  const banner = document.querySelector('.cookie-consent-banner');
+  if (banner) banner.remove();
 }
 
 /* ============================================
@@ -522,7 +788,9 @@ function toggleWishlist(productId, btn) {
     showToast('Removed from wishlist', 'success');
   }
 
-  localStorage.setItem('Roger McDaniels_wishlist', JSON.stringify(state.wishlist));
+  if (hasCookieConsent()) {
+    localStorage.setItem('Roger McDaniels_wishlist', JSON.stringify(state.wishlist));
+  }
 
   // Keep every button for this product in sync, not just the one clicked
   // (the same product can appear in more than one place on a page).
@@ -582,6 +850,35 @@ function showToast(message, type = 'success') {
   setTimeout(() => toast.remove(), 3000);
 }
 
+function setButtonLoading(button, label = 'Please wait loading...') {
+  if (!button) return;
+  if (!button.dataset.originalHtml) {
+    button.dataset.originalHtml = button.innerHTML;
+  }
+  button.disabled = true;
+  button.classList.add('loading');
+  button.innerHTML = `<span class="button-spinner"></span><span>${label}</span>`;
+}
+
+function clearButtonLoading(button) {
+  if (!button) return;
+  button.disabled = false;
+  button.classList.remove('loading');
+  if (button.dataset.originalHtml) {
+    button.innerHTML = button.dataset.originalHtml;
+    delete button.dataset.originalHtml;
+  }
+}
+
+function createLoadingHtml(message = 'Loading...') {
+  return `
+    <div class="loading-state">
+      <div class="spinner"></div>
+      <p>${message}</p>
+    </div>
+  `;
+}
+
 /* ============================================
    PRODUCT RENDERING
    ============================================ */
@@ -637,7 +934,10 @@ function renderProductCard(product) {
    ============================================ */
 
 function handleQuickAddClick(button, productId, size, preorderMessage) {
+  const originalButton = button;
+  setButtonLoading(button, 'Please wait loading...');
   addToCart(productId, 1, size, preorderMessage);
+  clearButtonLoading(originalButton);
   showAddedToCartState(button, !!preorderMessage);
 }
 
@@ -1222,10 +1522,10 @@ function copyShareLink(url) {
 // Export for module usage
 if (typeof module !== 'undefined' && module.exports) {
   module.exports = {
-    loadData, loadComments, loadUsers, loadRegions, toggleWishlist, showToast,
+    loadData, loadComments, loadRegions, loadOrders, toggleWishlist, showToast,
     renderProductCard, getIcon, formatPrice, getLineItemPrice, productPriceLabel,
     getUrlParam, state, toggleFaq, pagePath, assetPath, signIn, signUp,
-    signOut, requireAuth, updateProfileName, changePassword,
+    signOut, requireAuth, updateProfileName, changePassword, initAuthSession,
     openShareModal, closeShareModal, copyShareLink
   };
 }

@@ -5,7 +5,7 @@ function getFooterComponentHtml(pagePrefix) {
     <div class="footer-grid">
       <div class="footer-brand">
         <div class="logo">
-        <img src="assets/rm-logo.jpg" alt="RM Logo" style="width: 60px; height: 50px; border-radius: 10px; float: right;">
+        <img src="${typeof assetPath === 'function' ? assetPath('assets/rm-logo.jpg') : 'assets/rm-logo.jpg'}" alt="RM Logo" style="width: 60px; height: 50px; border-radius: 10px; float: right;">
         Roger McDaniels</div>
         <p>Not for <strong>EVERYONE</strong>.</p>
         <div class="footer-social">
@@ -38,7 +38,7 @@ function getFooterComponentHtml(pagePrefix) {
       <div class="footer-col">
         <h4>Support</h4>
         <ul>
-          <li><a href="../pages/contact.html">Contact</a></li>
+          <li><a href="${pagePrefix}contact.html">Contact</a></li>
           <!--<li><a href="#">FAQ</a></li>
           <li><a href="#">Shipping</a></li>
           <li><a href="#">Returns</a></li>

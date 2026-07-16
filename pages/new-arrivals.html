@@ -51,7 +51,10 @@
 
 <section class="new-arrivals-section">
   <div class="products-grid grid-4 carousel-mobile" id="new-arrivals-grid">
-    <!-- Products rendered via JS -->
+    <div class="loading-state" style="grid-column: 1 / -1;">
+      <div class="spinner"></div>
+      <p>Loading...</p>
+    </div>
   </div>
 </section>
 
@@ -59,22 +62,26 @@
 
 <div id="footer-placeholder"></div>
 
-<script src="../js/main.js"></script>
-<script src="../components/header.js"></script>
-<script src="../components/footer.js"></script>
-<script src="../components/cart.js"></script>
-<script src="../components/checkout.js"></script>
-<script src="../components/comment.js"></script>
-<script src="../components/scroll-hint.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script defer src="../js/supabase-client.js"></script>
+<script defer src="../js/main.js"></script>
+<script defer src="../components/header.js"></script>
+<script defer src="../components/footer.js"></script>
+<script defer src="../components/cart.js"></script>
+<script defer src="../components/checkout.js"></script>
+<script defer src="../components/comment.js"></script>
+<script defer src="../components/scroll-hint.js"></script>
 <script>
-  loadData().then(data => {
-    if (!data) return;
-    const newProducts = data.products.filter(p => p.is_new);
-    const grid = document.getElementById('new-arrivals-grid');
-    grid.innerHTML = newProducts.map(p => renderProductCard(p)).join('');
-    initWishlistButtons();
-    initColorDots();
-    initScrollAnimations();
+  document.addEventListener('DOMContentLoaded', () => {
+    loadData().then(data => {
+      if (!data) return;
+      const newProducts = data.products.filter(p => p.is_new);
+      const grid = document.getElementById('new-arrivals-grid');
+      grid.innerHTML = newProducts.map(p => renderProductCard(p)).join('');
+      initWishlistButtons();
+      initColorDots();
+      initScrollAnimations();
+    });
   });
 </script>
 </body>

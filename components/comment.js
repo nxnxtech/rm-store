@@ -1,21 +1,3 @@
-/* ============================================
-   COMMENT COMPONENT
-   Site-wide "Chat" section.
-   Seeded from js/comments.json, then any comment a
-   user posts (on any page) is appended to the same
-   shared, site-wide list so it shows up everywhere.
-   ============================================ */
-
-const COMMENTS_STORAGE_KEY = 'Roger McDaniels_comments';
-
-function getStoredComments() {
-  return JSON.parse(localStorage.getItem(COMMENTS_STORAGE_KEY)) || [];
-}
-
-function saveStoredComments(comments) {
-  localStorage.setItem(COMMENTS_STORAGE_KEY, JSON.stringify(comments));
-}
-
 async function initCommentsSection() {
   const section = document.getElementById('comments-section');
   if (!section) return;
@@ -96,15 +78,19 @@ async function handleCommentSubmit(e) {
   const message = document.getElementById('comment-message').value.trim();
   if (!name || !message) return;
 
-  const comments = getStoredComments();
-  comments.unshift({
+  const { error } = await supabase.from('rm_store_comments').insert({
+    user_id: state.currentUser ? state.currentUser.id : null,
     name,
     rating,
     message,
-    avatar: '',
-    date: new Date().toISOString()
+    avatar: state.currentUser ? (state.currentUser.avatar || '') : ''
   });
-  saveStoredComments(comments);
+
+  if (error) {
+    console.error('Failed to post comment:', error);
+    showToast('Could not post your comment. Please try again.', 'error');
+    return;
+  }
 
   e.target.reset();
   await renderComments();
@@ -116,11 +102,10 @@ async function renderComments() {
   const list = document.getElementById('comment-list');
   if (!list) return;
 
-  // Combine the seeded testimonials/comments from comments.json with anything
-  // a user has posted (stored locally), newest user comments first.
-  const seeded = await loadComments();
-  const userComments = getStoredComments();
-  const comments = [...userComments, ...seeded];
+  // rm_store_comments is now the single shared source — seeded rows and
+  // anything posted by any visitor all come back from the same query,
+  // newest first (see loadComments() in main.js).
+  const comments = await loadComments();
 
   if (comments.length === 0) {
     list.innerHTML = `<p class="comment-empty">Be the first to leave a comment.</p>`;
