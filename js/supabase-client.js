@@ -11,7 +11,7 @@ const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_
 
 supabase = supabaseClient;
 
-const SUPABASE_STORAGE_BASE = `${SUPABASE_URL}/storage/v1/object/public/rm-store-assets/`;
+const SUPABASE_STORAGE_BASE = `${SUPABASE_URL}/storage/v1/object/public/rm-store-products/`;
 
 function storageUrl(path) {
   if (!path) return path;

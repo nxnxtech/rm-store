@@ -455,42 +455,45 @@ async function handlePaystackSuccess(reference) {
   await submitOrderToDatabase(reference);
 }
 
+// Calls the 'rm-store-submit-order' Supabase Edge Function instead of
+// inserting straight from the client. The client only sends the cart
+// (ids/qty/size), the delivery details, and the Paystack reference — the
+// edge function re-prices everything from the DB itself (same as
+// calculateCheckout above), optionally re-verifies the payment with
+// Paystack, and performs the insert with the service role key. This closes
+// the gap where a tampered client could otherwise pass whatever
+// subtotal/total/prices it wanted straight into the RPC.
 async function submitOrderToDatabase(reference) {
-  const { cartItems, subtotal, shippingFee, grandTotal, customer } = state.pendingOrder;
+  const { cartItems, customer } = state.pendingOrder;
   const guestCheckout = !state.currentUser;
 
-  // Built once, used both as the denormalized `items` snapshot on the
-  // order row and as the payload for rm_store_order_items below.
-  const itemsSnapshot = cartItems.map(({ dbId, name, image, qty, size, unitPrice }) => ({
-    product_id: dbId || null,
-    name,
-    image,
-    size: size || null,
-    unit_price: unitPrice,
-    qty
-  }));
-
   try {
-    const { data: result, error: orderError } = await supabase.rpc('rm_store_create_paid_order', {
-      p_order: {
-        user_id: guestCheckout ? null : state.currentUser.id,
-        status: 'Paid',
-        customer_name: customer.name,
-        customer_email: customer.email,
-        customer_phone: customer.phone,
-        customer_address: customer.address,
+    const { data: result, error: submitError } = await supabase.functions.invoke('rm-store-submit-order', {
+      body: {
+        items: cartItems.map(item => ({ id: item.id, qty: item.qty, size: item.size })),
         region: customer.region,
-        city: customer.city,
-        subtotal: subtotal,
-        shipping_fee: shippingFee,
-        total: grandTotal,
-        payment_reference: reference,
-        payment_method: 'Paystack'
-      },
-      p_items: itemsSnapshot
+        customer,
+        reference,
+        paymentMethod: 'Paystack'
+      }
     });
 
-    if (orderError) throw orderError;
+    if (submitError) throw submitError;
+    if (result?.error) throw new Error(result.error);
+
+    // Use the edge function's own numbers/items for the receipt — it
+    // recalculated them from the DB, so they're the authoritative version
+    // of what was actually charged and saved, not just whatever was last
+    // shown on screen.
+    const { items: confirmedItems, subtotal, shippingFee, total: grandTotal } = result;
+    const itemsSnapshot = confirmedItems.map(({ dbId, name, image, qty, size, unitPrice }) => ({
+      product_id: dbId || null,
+      name,
+      image,
+      size: size || null,
+      unit_price: unitPrice,
+      qty
+    }));
 
     if (result.stock_conflict) {
       // Payment already succeeded and the order was still saved (never
@@ -501,16 +504,11 @@ async function submitOrderToDatabase(reference) {
       console.warn('Order saved with stock conflict:', result.shortfalls);
     }
 
-    if (guestCheckout) {
-      // Guest cart only ever lived in memory/localStorage — nothing to
-      // clean up in the DB.
-      state.cart = [];
-      saveCartToLocalStorage();
-    } else {
-      await supabase.from('rm_store_cart_items').delete().eq('user_id', state.currentUser.id);
-      state.cart = [];
-      saveCartToLocalStorage();
-    }
+    // Guest cart only ever lived in memory/localStorage. Signed-in users'
+    // server-side cart is already cleared by the edge function — just sync
+    // local state either way.
+    state.cart = [];
+    saveCartToLocalStorage();
     updateCartBadge();
 
     const order = {

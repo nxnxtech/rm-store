@@ -91,6 +91,105 @@
       margin-top: 20px;
       line-height: 1.6;
     }
+    .auth-hint a {
+      color: var(--primary);
+      text-decoration: none;
+      font-weight: 500;
+      cursor: pointer;
+    }
+    .auth-hint a:hover {
+      text-decoration: underline;
+    }
+    .forgot-password-modal {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(188, 188, 188, 0.5);
+      backdrop-filter: blur(4px);
+      z-index: 1000;
+      align-items: center;
+      justify-content: center;
+    }
+    .forgot-password-modal.active {
+      display: flex;
+    }
+    .forgot-password-content {
+      background: var(--glass-bg);
+      backdrop-filter: var(--blur);
+      border: 1px solid var(--glass-border);
+      border-radius: var(--radius-xl);
+      padding: 40px;
+      max-width: 420px;
+      width: 90%;
+      box-shadow: var(--glass-shadow);
+      animation: slideUp 0.3s ease-out;
+    }
+    @keyframes slideUp {
+      from {
+        opacity: 0;
+        transform: translateY(20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+    .forgot-password-header {
+      margin-bottom: 24px;
+    }
+    .forgot-password-header h2 {
+      font-size: 24px;
+      font-weight: 700;
+      margin-bottom: 8px;
+    }
+    .forgot-password-header p {
+      font-size: 14px;
+      color: var(--text-muted);
+    }
+    .forgot-password-step {
+      display: none;
+    }
+    .forgot-password-step.active {
+      display: block;
+    }
+    .forgot-password-actions {
+      display: flex;
+      gap: 12px;
+      margin-top: 24px;
+    }
+    .forgot-password-actions .btn {
+      flex: 1;
+    }
+    .password-input-wrapper {
+      position: relative;
+      display: flex;
+      align-items: center;
+    }
+    .password-input-wrapper input {
+      flex: 1;
+      padding-right: 40px;
+    }
+    .password-toggle-btn {
+      position: absolute;
+      right: 12px;
+      background: none;
+      border: none;
+      cursor: pointer;
+      padding: 4px 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--text-muted);
+      transition: color var(--transition-fast);
+      font-size: 0;
+    }
+    .password-toggle-btn:hover {
+      color: var(--text-dark);
+    }
+    .password-toggle-btn svg {
+      width: 18px;
+      height: 18px;
+    }
   </style>
 </head>
 <body>
@@ -116,35 +215,45 @@
     <form class="auth-form active" id="signin-form" data-tab="signin">
       <div class="form-group">
         <label for="signin-email">Email</label>
-        <input type="email" id="signin-email" required placeholder="you@example.com">
+        <input type="email" id="signin-email" required placeholder="rm@example.com">
       </div>
       <div class="form-group">
         <label for="signin-password">Password</label>
-        <input type="password" id="signin-password" required placeholder="Enter your password">
+        <div class="password-input-wrapper">
+          <input type="password" id="signin-password" required placeholder="Enter your password">
+          <button type="button" class="password-toggle-btn" onclick="togglePasswordVisibility('signin-password')" aria-label="Toggle password visibility">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+          </button>
+        </div>
       </div>
       <button type="submit" class="btn btn-primary auth-submit-btn">
         Sign In
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
       </button>
-      <p class="auth-hint">Forgot your password? Use "Change Password" from your profile once signed in, or contact support.</p>
+      <p class="auth-hint"><a onclick="openForgotPasswordModal()">Forgot your password?</a></p>
     </form>
 
     <form class="auth-form" id="signup-form" data-tab="signup">
       <div class="form-group">
         <label for="signup-name">Full Name</label>
-        <input type="text" id="signup-name" required placeholder="Jane Doe">
+        <input type="text" id="signup-name" required placeholder="Roger McDaniels">
       </div>
       <div class="form-group">
         <label for="signup-email">Email</label>
-        <input type="email" id="signup-email" required placeholder="you@example.com">
+        <input type="email" id="signup-email" required placeholder="rm@example.com">
       </div>
       <div class="form-group">
         <label for="signup-password">Password</label>
-        <input type="password" id="signup-password" required placeholder="Create a password" minlength="6">
+        <div class="password-input-wrapper">
+          <input type="password" id="signup-password" required placeholder="Create a password" minlength="6">
+          <button type="button" class="password-toggle-btn" onclick="togglePasswordVisibility('signup-password')" aria-label="Toggle password visibility">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+          </button>
+        </div>
       </div>
       <div class="form-group">
         <label for="signup-phone">Phone Number</label>
-        <input type="tel" id="signup-phone" required placeholder="024 123 4567">
+        <input type="tel" id="signup-phone" required placeholder="02X XXX XXXX">
       </div>
       <div class="form-group">
         <label for="signup-address">Delivery Address</label>
@@ -173,6 +282,50 @@
   </div>
 </section>
 
+<div id="forgot-password-modal" class="forgot-password-modal">
+  <div class="forgot-password-content">
+    <div class="forgot-password-header">
+      <h2>Reset Password</h2>
+      <p>We'll help you reset your password</p>
+    </div>
+
+    <div class="forgot-password-error" id="forgot-password-error" style="display: none;">
+      <div class="auth-error active" id="forgot-password-error-message"></div>
+    </div>
+
+    <!-- Step 1: Enter Email -->
+    <div class="forgot-password-step active" id="reset-email-step">
+      <form id="reset-email-form">
+        <div class="form-group">
+          <label for="reset-email">Email Address</label>
+          <input type="email" id="reset-email" required placeholder="rm@example.com">
+        </div>
+        <div class="form-group" style="font-size: 13px; color: var(--text-muted); line-height: 1.5;">
+          We'll send you a link to reset your password.
+        </div>
+        <div class="forgot-password-actions">
+          <button type="button" class="btn btn-secondary" onclick="closeForgotPasswordModal()">Cancel</button>
+          <button type="submit" class="btn btn-primary">Send Link</button>
+        </div>
+      </form>
+    </div>
+
+    <!-- Step 2: Confirmation -->
+    <div class="forgot-password-step" id="reset-confirmation-step">
+      <div style="text-align: center;">
+        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="var(--success)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin: 0 auto 16px; display: block;">
+          <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/>
+        </svg>
+        <h3 style="font-size: 18px; font-weight: 600; margin-bottom: 8px;">Check your email</h3>
+        <p style="font-size: 14px; color: var(--text-muted); line-height: 1.6; margin-bottom: 24px;">
+          We've sent a password reset link to <strong id="reset-email-display"></strong>. Click the link to reset your password.
+        </p>
+        <button type="button" class="btn btn-primary" onclick="closeForgotPasswordModal()" style="width: 100%;">Done</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <div id="footer-placeholder"></div>
 
 <script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
@@ -184,6 +337,19 @@
 <script defer src="../components/checkout.js"></script>
 <script defer src="../components/comment.js"></script>
 <script>
+  function togglePasswordVisibility(inputId) {
+    const input = document.getElementById(inputId);
+    const btn = document.querySelector(`button[onclick="togglePasswordVisibility('${inputId}')"]`);
+    
+    if (input.type === 'password') {
+      input.type = 'text';
+      btn.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>';
+    } else {
+      input.type = 'password';
+      btn.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>';
+    }
+  }
+
   function switchAuthTab(tab) {
     document.querySelectorAll('.auth-tab').forEach(t => t.classList.toggle('active', t.dataset.tab === tab));
     document.querySelectorAll('.auth-form').forEach(f => f.classList.toggle('active', f.dataset.tab === tab));
@@ -200,6 +366,42 @@
     const redirect = getUrlParam('redirect');
     window.location.href = redirect ? redirect : 'profile.html';
   }
+
+  // Forgot Password Modal Functions
+  function openForgotPasswordModal() {
+    document.getElementById('forgot-password-modal').classList.add('active');
+    document.getElementById('reset-email-step').classList.add('active');
+    document.getElementById('reset-confirmation-step').classList.remove('active');
+    clearForgotPasswordForm();
+  }
+
+  function closeForgotPasswordModal() {
+    document.getElementById('forgot-password-modal').classList.remove('active');
+    clearForgotPasswordForm();
+  }
+
+  function clearForgotPasswordForm() {
+    document.getElementById('reset-email-form').reset();
+    document.getElementById('forgot-password-error').style.display = 'none';
+  }
+
+  function showForgotPasswordError(message) {
+    const el = document.getElementById('forgot-password-error-message');
+    el.textContent = message;
+    document.getElementById('forgot-password-error').style.display = 'block';
+  }
+
+  function closeForgotPasswordError() {
+    document.getElementById('forgot-password-error').style.display = 'none';
+  }
+
+  // Close modal when clicking outside
+  document.addEventListener('click', (e) => {
+    const modal = document.getElementById('forgot-password-modal');
+    if (e.target === modal) {
+      closeForgotPasswordModal();
+    }
+  });
 
   async function populateSignupRegions() {
     const regionSelect = document.getElementById('signup-region');
@@ -237,7 +439,41 @@
       return;
     }
     showToast(`Welcome back, ${result.user.name.split(' ')[0]}!`, 'success');
-    setTimeout(redirectAfterAuth, 500);
+    setTimeout(redirectAfterAuth, 5000);
+  });
+
+  document.getElementById('reset-email-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    closeForgotPasswordError();
+    
+    const email = document.getElementById('reset-email').value.trim();
+    const submitBtn = e.target.querySelector('button[type="submit"]');
+    const originalText = submitBtn.textContent;
+    
+    try {
+      submitBtn.disabled = true;
+      submitBtn.textContent = 'Sending...';
+      
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `https://nxnxtech.github.io/rm-store/pages/reset-password.html`
+      });
+      
+      if (error) {
+        showForgotPasswordError(error.message);
+        return;
+      }
+      
+      // Show confirmation step
+      document.getElementById('reset-email-step').classList.remove('active');
+      document.getElementById('reset-confirmation-step').classList.add('active');
+      document.getElementById('reset-email-display').textContent = email;
+      
+    } catch (err) {
+      showForgotPasswordError(err.message);
+    } finally {
+      submitBtn.disabled = false;
+      submitBtn.textContent = originalText;
+    }
   });
 
   document.getElementById('signup-form').addEventListener('submit', async (e) => {
@@ -260,8 +496,10 @@
       showAuthError(result.message);
       return;
     }
-    showToast(`Welcome, ${result.user.name.split(' ')[0]}!`, 'success');
-    setTimeout(redirectAfterAuth, 500);
+    showToast(`Welcome, ${result.user.name.split(' ')[0]}!`, 'success, check your email for verification.');
+    setTimeout(() => {
+      window.location.href = `signup-success.html?name=${encodeURIComponent(result.user.name)}&email=${encodeURIComponent(result.user.email)}`;
+    }, 500);
   });
 
   // If already signed in, just send them to their profile
