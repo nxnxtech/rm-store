@@ -505,6 +505,13 @@
     const size = product.sizes[activeSizeIndex];
     const price = getLineItemPrice(product, size);
 
+    const cap = getLineItemStock(product, size);
+    if (cap !== null) {
+      selectedQty = cap <= 0 ? 1 : Math.min(selectedQty, cap);
+    }
+    const qtyEl = document.getElementById('pdp-qty-value');
+    if (qtyEl) qtyEl.textContent = selectedQty;
+
     document.querySelectorAll('.pdp-size-list-btn').forEach((el, i) => el.classList.toggle('active', i === index));
     document.querySelectorAll('.pdp-size-pill').forEach((el, i) => el.classList.toggle('active', i === index));
 
@@ -529,7 +536,17 @@
   }
 
   function changePdpQty(delta) {
-    selectedQty = Math.max(1, selectedQty + delta);
+    const size = product.sizes[activeSizeIndex];
+    const cap = getLineItemStock(product, size);
+    let next = selectedQty + delta;
+    if (delta > 0 && cap !== null) {
+      if (selectedQty >= cap) {
+        showToast(`Only ${cap} in stock`, 'error');
+        return;
+      }
+      next = Math.min(next, cap);
+    }
+    selectedQty = Math.max(1, next);
     const qtyEl = document.getElementById('pdp-qty-value');
     if (qtyEl) qtyEl.textContent = selectedQty;
   }

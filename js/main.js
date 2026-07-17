@@ -94,6 +94,7 @@ function mapProductRow(row) {
     colors: row.colors || [],
     sizes: row.sizes || [],
     sizePrices: row.size_prices || {},
+    sizeStock: row.size_stock || {},
     stock: row.stock_quantity,
     rating: Number(row.rating) || 0,
     reviews: row.reviews_count || 0
@@ -1398,6 +1399,18 @@ function getLineItemPrice(product, size) {
   return product.price;
 }
 
+// Returns the max quantity purchasable for this product/size, or null when
+// there's no stock info to enforce a cap against (treat as unlimited).
+function getLineItemStock(product, size) {
+  if (!product) return null;
+  if (product.sizeStock && size && product.sizeStock[size] !== undefined) {
+    const n = Number(product.sizeStock[size]);
+    return Number.isFinite(n) ? n : null;
+  }
+  if (typeof product.stock === 'number') return product.stock;
+  return null;
+}
+
 function getUrlParam(param) {
   const urlParams = new URLSearchParams(window.location.search);
   return urlParams.get(param);
@@ -1527,7 +1540,7 @@ function copyShareLink(url) {
 if (typeof module !== 'undefined' && module.exports) {
   module.exports = {
     loadData, loadComments, loadRegions, loadOrders, toggleWishlist, showToast,
-    renderProductCard, getIcon, formatPrice, getLineItemPrice, productPriceLabel,
+    renderProductCard, getIcon, formatPrice, getLineItemPrice, getLineItemStock, productPriceLabel,
     getUrlParam, state, toggleFaq, pagePath, assetPath, signIn, signUp,
     signOut, requireAuth, updateProfileName, changePassword, initAuthSession,
     openShareModal, closeShareModal, copyShareLink

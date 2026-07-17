@@ -87,6 +87,14 @@ function findCartItem(productId, size) {
   return state.cart.find(item => item.id === productId && item.size === (size || null));
 }
 
+// Looks up the stock cap for a product/size from whatever catalog data is
+// currently loaded. Returns null when unknown (no cap enforced in that case).
+function getStockCapFor(productId, size) {
+  const product = state.data?.products?.find(p => p.id === productId);
+  if (!product) return null;
+  return getLineItemStock(product, size || null);
+}
+
 function saveCartToLocalStorage() {
   if (!hasCookieConsent()) return; // no consent — cart stays in-memory only
   localStorage.setItem('Roger McDaniels_cart', JSON.stringify(state.cart));
@@ -94,21 +102,40 @@ function saveCartToLocalStorage() {
 
 function addToCart(productId, qty = 1, size = null, message) {
   const existing = findCartItem(productId, size);
+  const cap = getStockCapFor(productId, size);
+
+  const currentQty = existing ? existing.qty : 0;
+  let nextQty = currentQty + qty;
+  let capped = false;
+  if (cap !== null) {
+    if (cap <= 0) {
+      showToast('This item is out of stock', 'error');
+      return;
+    }
+    if (nextQty > cap) {
+      nextQty = cap;
+      capped = true;
+    }
+  }
+  if (existing && nextQty === currentQty) {
+    // Already at (or above) the cap — nothing to add.
+    if (capped) showToast(`Only ${cap} in stock — cart already has the max`, 'error');
+    return;
+  }
 
   if (existing) {
-    existing.qty += qty;
+    existing.qty = nextQty;
   } else {
-    state.cart.push({ id: productId, qty, size: size || null });
+    state.cart.push({ id: productId, qty: nextQty, size: size || null });
   }
 
   if (state.currentUser) {
-    const finalQty = existing ? existing.qty : qty;
-    upsertCartItemInDb(productId, finalQty, size);
+    upsertCartItemInDb(productId, nextQty, size);
   }
 
   saveCartToLocalStorage();
   updateCartBadge();
-  showToast(message || 'Added to cart!', 'success');
+  showToast(capped ? `Only ${cap} in stock — added the max available` : (message || 'Added to cart!'), capped ? 'error' : 'success');
   renderCartModal();
 }
 
@@ -240,6 +267,18 @@ async function renderCartModal() {
 function changeCartQty(productId, size, delta) {
   const item = findCartItem(productId, size || null);
   if (!item) return;
+
+  if (delta > 0) {
+    const cap = getStockCapFor(productId, size || null);
+    if (cap !== null && item.qty >= cap) {
+      showToast(`Only ${cap} in stock`, 'error');
+      return;
+    }
+    if (cap !== null && item.qty + delta > cap) {
+      delta = cap - item.qty;
+    }
+  }
+
   item.qty += delta;
   const removed = item.qty <= 0;
   if (removed) {
